@@ -1,0 +1,18 @@
+# general
+.DS_Store
+.env
+.env.*
+*.log
+
+# python
+__pycache__/
+*.pyc
+.venv/
+dist/
+build/
+
+# node
+# node_modules/
+
+# docker
+volumes/
