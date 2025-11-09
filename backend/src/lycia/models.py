@@ -1,4 +1,5 @@
-from sqlalchemy import Integer, String, Float
+from datetime import datetime, timezone
+from sqlalchemy import Integer, String, Float, DateTime
 from sqlalchemy.orm import Mapped, mapped_column
 from .db import Base
 
@@ -16,3 +17,36 @@ class WorldState(Base):
     __tablename__ = "world_state"
     id: Mapped[int] = mapped_column(Integer, primary_key=True)  # keep single row id=1
     tick: Mapped[int] = mapped_column(Integer, default=0)
+
+class Player(Base):
+    """
+    Player model for user authentication and game profile.
+
+    Designed for extensibility - future sprints can add:
+    - Relationships to Character, Army, Territory models
+    - Game-specific attributes (gold, reputation, titles, etc.)
+    - Achievement tracking
+    - Social features (friends, guilds, etc.)
+    """
+    __tablename__ = "players"
+
+    # Primary key
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
+    # Authentication fields
+    username: Mapped[str] = mapped_column(String(50), unique=True, index=True, nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    # Account management
+    is_active: Mapped[bool] = mapped_column(default=True)
+
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_login: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # Future: Add game-related fields here
+    # gold: Mapped[int] = mapped_column(Integer, default=1000)
+    # level: Mapped[int] = mapped_column(Integer, default=1)
+    # faction_id: Mapped[int | None] = mapped_column(ForeignKey("factions.id"), nullable=True)
+    # characters: Mapped[list["Character"]] = relationship(back_populates="player")

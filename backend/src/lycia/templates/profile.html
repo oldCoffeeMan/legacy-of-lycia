@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - {{ player.username }}{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+    <div class="profile-card">
+        <div class="profile-header">
+            <h2>{{ player.username }}</h2>
+            <span class="profile-badge">Player Profile</span>
+        </div>
+
+        <div class="profile-info">
+            <div class="info-row">
+                <span class="info-label">Email:</span>
+                <span class="info-value">{{ player.email }}</span>
+            </div>
+
+            <div class="info-row">
+                <span class="info-label">Account Created:</span>
+                <span class="info-value">{{ player.created_at.strftime('%B %d, %Y') }}</span>
+            </div>
+
+            {% if player.last_login %}
+            <div class="info-row">
+                <span class="info-label">Last Login:</span>
+                <span class="info-value">{{ player.last_login.strftime('%B %d, %Y at %H:%M UTC') }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="coming-soon-section">
+            <h3>Coming Soon</h3>
+            <ul class="feature-list">
+                <li>Character Management</li>
+                <li>Player Statistics</li>
+                <li>Achievement Tracking</li>
+                <li>Game History</li>
+                <li>Profile Customization</li>
+                <li>Social Features</li>
+            </ul>
+        </div>
+
+        <div class="profile-actions">
+            <a href="/game" class="btn btn-primary">Back to Game</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

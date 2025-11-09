@@ -25,8 +25,18 @@
     <div class="app-container">
         <header class="app-header">
             <h1>Legacy of Lycia</h1>
-            <div class="game-info" x-data x-init="$watch('$store.game.tick', value => {})">
-                <span class="tick-counter">Turn: <strong x-text="$store.game?.tick || 0">0</strong></span>
+            <div class="header-right">
+                <div class="game-info" x-data x-init="$watch('$store.game.tick', value => {})">
+                    <span class="tick-counter">Turn: <strong x-text="$store.game?.tick || 0">0</strong></span>
+                </div>
+                {% if player %}
+                <div class="player-info">
+                    <a href="/profile" class="player-name">{{ player.username }}</a>
+                    <form method="POST" action="/logout" style="display: inline;">
+                        <button type="submit" class="btn btn-logout">Logout</button>
+                    </form>
+                </div>
+                {% endif %}
             </div>
         </header>
 

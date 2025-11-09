@@ -35,14 +35,14 @@ def test_db_connection(max_retries: int = 3, retry_delay: int = 2) -> bool:
         try:
             with engine.connect() as conn:
                 conn.execute(text("SELECT 1"))
-            print("✓ Database connection successful")
+            print("[OK] Database connection successful")
             return True
         except OperationalError as e:
             if attempt < max_retries - 1:
-                print(f"⚠ Database connection attempt {attempt + 1}/{max_retries} failed. Retrying in {retry_delay}s...")
+                print(f"[WARN] Database connection attempt {attempt + 1}/{max_retries} failed. Retrying in {retry_delay}s...")
                 time.sleep(retry_delay)
             else:
-                print(f"✗ Database connection failed after {max_retries} attempts")
+                print(f"[ERROR] Database connection failed after {max_retries} attempts")
                 print(f"  Error: {str(e)}")
                 return False
     return False
@@ -68,13 +68,13 @@ def start_docker_database() -> bool:
         )
 
         if result.returncode != 0:
-            print("✗ Docker is not running. Please start Docker Desktop.")
+            print("[ERROR] Docker is not running. Please start Docker Desktop.")
             return False
 
         # Check if lycia-postgres container exists
         container_name = "lycia-postgres"
         if container_name in result.stdout:
-            print(f"⚡ Found existing '{container_name}' container. Starting it...")
+            print(f"[INFO] Found existing '{container_name}' container. Starting it...")
 
             start_result = subprocess.run(
                 ["docker", "start", container_name],
@@ -84,16 +84,16 @@ def start_docker_database() -> bool:
             )
 
             if start_result.returncode == 0:
-                print(f"✓ Database container '{container_name}' started successfully")
+                print(f"[OK] Database container '{container_name}' started successfully")
                 # Give it a moment to initialize
                 time.sleep(3)
                 return True
             else:
-                print(f"⚠ Failed to start '{container_name}': {start_result.stderr}")
+                print(f"[WARN] Failed to start '{container_name}': {start_result.stderr}")
                 print("  Trying docker-compose as fallback...")
 
         # Fallback: Try to start via docker-compose
-        print("⚡ Attempting to start database via docker-compose...")
+        print("[INFO] Attempting to start database via docker-compose...")
 
         # Find infra directory (assuming standard project structure)
         import pathlib
@@ -101,7 +101,7 @@ def start_docker_database() -> bool:
         compose_file = project_root / "infra" / "docker-compose.yml"
 
         if not compose_file.exists():
-            print(f"✗ docker-compose.yml not found at {compose_file}")
+            print(f"[ERROR] docker-compose.yml not found at {compose_file}")
             return False
 
         result = subprocess.run(
@@ -112,22 +112,22 @@ def start_docker_database() -> bool:
         )
 
         if result.returncode == 0:
-            print("✓ Database container started via docker-compose")
+            print("[OK] Database container started via docker-compose")
             # Give it a moment to initialize
             time.sleep(3)
             return True
         else:
-            print(f"✗ Failed to start database container: {result.stderr}")
+            print(f"[ERROR] Failed to start database container: {result.stderr}")
             return False
 
     except subprocess.TimeoutExpired:
-        print("✗ Docker command timed out")
+        print("[ERROR] Docker command timed out")
         return False
     except FileNotFoundError:
-        print("✗ Docker or docker-compose not found. Please install Docker.")
+        print("[ERROR] Docker or docker-compose not found. Please install Docker.")
         return False
     except Exception as e:
-        print(f"✗ Unexpected error starting database: {str(e)}")
+        print(f"[ERROR] Unexpected error starting database: {str(e)}")
         return False
 
 def ensure_database_ready(auto_start: bool = True) -> None:
@@ -140,13 +140,13 @@ def ensure_database_ready(auto_start: bool = True) -> None:
     Raises:
         RuntimeError: If database is not available and cannot be started
     """
-    print("\n🔍 Checking database connection...")
+    print("\nChecking database connection...")
 
     if test_db_connection(max_retries=1, retry_delay=0):
         return
 
     if auto_start:
-        print("\n🐳 Database not available. Attempting to start Docker container...")
+        print("\nDatabase not available. Attempting to start Docker container...")
         if start_docker_database():
             # Test connection again after starting
             if test_db_connection(max_retries=5, retry_delay=2):
@@ -154,34 +154,32 @@ def ensure_database_ready(auto_start: bool = True) -> None:
 
     # If we get here, database is not available
     error_msg = """
-╔════════════════════════════════════════════════════════════════╗
-║                  DATABASE CONNECTION FAILED                    ║
-╚════════════════════════════════════════════════════════════════╝
+DATABASE CONNECTION FAILED
 
 The application cannot connect to the PostgreSQL database.
 
-📋 Troubleshooting steps:
+Troubleshooting steps:
 
 1. Check if Docker is running:
-   → Open Docker Desktop and ensure it's started
+   - Open Docker Desktop and ensure it's started
 
 2. Start the database container manually:
-   → docker start lycia-postgres
+   - docker start lycia-postgres
    OR
-   → cd infra
-   → docker-compose up -d db
+   - cd infra
+   - docker-compose up -d db
 
 3. Verify the container is running:
-   → docker ps | grep lycia-postgres
+   - docker ps | grep lycia-postgres
 
 4. Check connection details:
-   → Host: localhost
-   → Port: 5432
-   → Database: lycia
-   → User: postgres
+   - Host: localhost
+   - Port: 5432
+   - Database: lycia
+   - User: postgres
 
 5. View container logs for errors:
-   → docker logs lycia-postgres
+   - docker logs lycia-postgres
 
 Database URL: {url}
 """.format(url=DATABASE_URL)

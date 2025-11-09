@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Legacy of Lycia{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <h2>Welcome Back to Lycia</h2>
+        <p class="auth-subtitle">Enter the ancient world of strategy and conquest</p>
+
+        {% if error %}
+        <div class="alert alert-error">
+            {{ error }}
+        </div>
+        {% endif %}
+
+        <form method="POST" action="/login" class="auth-form">
+            <div class="form-group">
+                <label for="username">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    required
+                    autofocus
+                    value="{{ username or '' }}"
+                    placeholder="Enter your username"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    required
+                    placeholder="Enter your password"
+                >
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+                Login
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>New to Legacy of Lycia?</p>
+            <a href="/register" class="btn btn-secondary">Create Account</a>
+        </div>
+    </div>
+</div>
+{% endblock %}
