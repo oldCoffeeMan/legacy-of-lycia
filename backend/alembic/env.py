@@ -1,26 +1,23 @@
 from __future__ import annotations
-import os, sys
+
+import sys
 from pathlib import Path
 from logging.config import fileConfig
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-# ---- Locate project root and add src to sys.path
+# ------------------------------------------------------------
+# Make `lycia` importable (backend/src on sys.path)
+# ------------------------------------------------------------
 BASE_DIR = Path(__file__).resolve().parents[1]  # .../backend
 SRC_DIR = BASE_DIR / "src"
 if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
-# ---- Optional: load .env
-try:
-    from dotenv import load_dotenv  # pip install python-dotenv
-    load_dotenv(BASE_DIR / ".env")
-except Exception:
-    pass
-
-# ---- Import models and metadata
-from lycia.db import Base, DATABASE_URL  # noqa: E402
-from lycia import models  # noqa: F401  (ensure models imported)
+# Import metadata and models so autogenerate sees them
+from lycia.db import Base  # type: ignore
+import lycia.models  # noqa: F401
 
 
 # this is the Alembic Config object, which provides
@@ -31,11 +28,6 @@ config = context.config
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
-
-# Use env DATABASE_URL if present
-db_url = os.getenv("DATABASE_URL", DATABASE_URL)
-config.set_main_option("sqlalchemy.url", db_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
