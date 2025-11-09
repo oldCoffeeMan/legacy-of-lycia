@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Game Map - Legacy of Lycia{% endblock %}
+
+{% block content %}
+<div class="game-container" x-data="gameState()">
+    <div id="map" class="game-map"></div>
+
+    <!-- City info panel (shown on hover) -->
+    <div class="city-info-panel" x-show="selectedCity" x-cloak>
+        <h3 x-text="selectedCity?.name"></h3>
+        <div class="city-stats">
+            <div class="stat">
+                <span class="stat-label">Region:</span>
+                <span class="stat-value" x-text="selectedCity?.region"></span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Prosperity:</span>
+                <span class="stat-value prosperity" x-text="selectedCity?.prosperity"></span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Unrest:</span>
+                <span class="stat-value unrest" x-text="selectedCity?.unrest"></span>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<!-- Leaflet JS - Load BEFORE Alpine initializes -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+        crossorigin=""></script>
+
+<script>
+// Alpine.js component for game state management
+// Define this BEFORE Alpine.js loads (it's deferred in base.html)
+document.addEventListener('alpine:init', () => {
+    // Initialize global game store
+    Alpine.store('game', {
+        tick: 0
+    });
+
+    Alpine.data('gameState', () => ({
+        map: null,
+        cities: [],
+        selectedCity: null,
+        worldTick: 0,
+
+        async init() {
+            // Initialize the map
+            this.initMap();
+
+            // Load initial data
+            await this.loadWorldData();
+        },
+
+        initMap() {
+            // Center on ancient Lycia region (modern southwest Turkey)
+            // Approximate coordinates: 36.2°N, 29.6°E
+            this.map = L.map('map').setView([36.2, 29.6], 9);
+
+            // Use OpenStreetMap tiles (open source!)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+                minZoom: 7
+            }).addTo(this.map);
+
+            // Optional: Add a legend or overlay showing "Ancient Lycia"
+            const lyciaInfo = L.control({ position: 'topright' });
+            lyciaInfo.onAdd = function() {
+                const div = L.DomUtil.create('div', 'map-legend');
+                div.innerHTML = '<h4>Ancient Lycia</h4><p>Southwestern Anatolia</p>';
+                return div;
+            };
+            lyciaInfo.addTo(this.map);
+        },
+
+        async loadWorldData() {
+            try {
+                const response = await fetch('/api/world/snapshot');
+                const data = await response.json();
+
+                this.cities = data.cities;
+                this.worldTick = data.tick;
+
+                // Update global store for tick counter in header
+                Alpine.store('game').tick = data.tick;
+
+                // Add city markers to map
+                this.addCityMarkers();
+            } catch (error) {
+                console.error('Failed to load world data:', error);
+            }
+        },
+
+        addCityMarkers() {
+            this.cities.forEach(city => {
+                // Create custom icon based on city prosperity
+                const iconClass = this.getCityIconClass(city.prosperity);
+
+                const marker = L.circleMarker([city.lat, city.lon], {
+                    radius: 8,
+                    fillColor: this.getCityColor(city.prosperity, city.unrest),
+                    color: '#000',
+                    weight: 1,
+                    opacity: 1,
+                    fillOpacity: 0.8
+                });
+
+                // Bind popup with city information
+                marker.bindPopup(`
+                    <div class="city-popup">
+                        <h4>${city.name}</h4>
+                        <p><strong>Region:</strong> ${city.region}</p>
+                        <p><strong>Prosperity:</strong> ${city.prosperity}</p>
+                        <p><strong>Unrest:</strong> ${city.unrest}</p>
+                    </div>
+                `);
+
+                // Add hover events
+                marker.on('mouseover', () => {
+                    this.selectedCity = city;
+                    marker.openPopup();
+                });
+
+                marker.on('mouseout', () => {
+                    this.selectedCity = null;
+                    marker.closePopup();
+                });
+
+                // Add click event (for future interactions)
+                marker.on('click', () => {
+                    console.log('City clicked:', city.name);
+                    // Future: open detailed city view, manage city, etc.
+                });
+
+                marker.addTo(this.map);
+
+                // Add city label
+                const label = L.tooltip({
+                    permanent: true,
+                    direction: 'top',
+                    className: 'city-label',
+                    offset: [0, -10]
+                }).setContent(city.name);
+
+                marker.bindTooltip(label);
+            });
+        },
+
+        getCityColor(prosperity, unrest) {
+            // Color based on prosperity and unrest
+            // High prosperity + low unrest = green
+            // Low prosperity or high unrest = red/orange
+            if (prosperity > 70 && unrest < 20) return '#2ecc71'; // green
+            if (prosperity > 50 && unrest < 40) return '#3498db'; // blue
+            if (prosperity > 30) return '#f39c12'; // orange
+            return '#e74c3c'; // red
+        },
+
+        getCityIconClass(prosperity) {
+            if (prosperity > 70) return 'city-prosperous';
+            if (prosperity > 40) return 'city-moderate';
+            return 'city-struggling';
+        }
+    }));
+});
+</script>
+{% endblock %}

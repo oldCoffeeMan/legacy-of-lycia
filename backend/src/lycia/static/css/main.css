@@ -1,0 +1,236 @@
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #1a1a2e;
+    color: #eee;
+    line-height: 1.6;
+}
+
+/* App layout */
+.app-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+}
+
+.app-header {
+    background-color: #16213e;
+    padding: 1rem 2rem;
+    border-bottom: 2px solid #0f3460;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.app-header h1 {
+    font-size: 1.8rem;
+    color: #e94560;
+    font-weight: 700;
+}
+
+.game-info {
+    display: flex;
+    gap: 2rem;
+}
+
+.tick-counter {
+    font-size: 1.1rem;
+    color: #bbb;
+}
+
+.tick-counter strong {
+    color: #3498db;
+    font-size: 1.3rem;
+}
+
+.app-main {
+    flex: 1;
+    overflow: hidden;
+}
+
+.app-footer {
+    background-color: #16213e;
+    padding: 0.8rem 2rem;
+    border-top: 1px solid #0f3460;
+    text-align: center;
+    font-size: 0.9rem;
+    color: #888;
+}
+
+/* Game container */
+.game-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+/* Map styles */
+.game-map {
+    height: 100%;
+    width: 100%;
+    z-index: 1;
+}
+
+/* Map legend */
+.map-legend {
+    background: rgba(22, 33, 62, 0.95);
+    padding: 1rem;
+    border-radius: 8px;
+    border: 2px solid #0f3460;
+    color: #eee;
+}
+
+.map-legend h4 {
+    color: #e94560;
+    margin-bottom: 0.5rem;
+    font-size: 1.1rem;
+}
+
+.map-legend p {
+    font-size: 0.9rem;
+    color: #bbb;
+}
+
+/* City labels */
+.city-label {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    font-weight: bold;
+    font-size: 0.9rem;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* City popup */
+.city-popup {
+    min-width: 200px;
+}
+
+.city-popup h4 {
+    color: #e94560;
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.city-popup p {
+    margin: 0.3rem 0;
+    font-size: 0.95rem;
+}
+
+.city-popup strong {
+    color: #3498db;
+}
+
+/* City info panel */
+.city-info-panel {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    background: rgba(22, 33, 62, 0.95);
+    padding: 1.5rem;
+    border-radius: 12px;
+    border: 2px solid #0f3460;
+    min-width: 280px;
+    z-index: 1000;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.city-info-panel h3 {
+    color: #e94560;
+    margin-bottom: 1rem;
+    font-size: 1.4rem;
+    border-bottom: 2px solid #0f3460;
+    padding-bottom: 0.5rem;
+}
+
+.city-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.stat {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    background: rgba(15, 52, 96, 0.5);
+    border-radius: 6px;
+}
+
+.stat-label {
+    font-weight: 600;
+    color: #bbb;
+    font-size: 0.95rem;
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #3498db;
+}
+
+.stat-value.prosperity {
+    color: #2ecc71;
+}
+
+.stat-value.unrest {
+    color: #e74c3c;
+}
+
+/* Alpine.js cloak */
+[x-cloak] {
+    display: none !important;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .app-header {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+
+    .app-header h1 {
+        font-size: 1.5rem;
+    }
+
+    .city-info-panel {
+        left: 10px;
+        right: 10px;
+        min-width: auto;
+    }
+
+    .game-info {
+        gap: 1rem;
+    }
+}
+
+/* Leaflet popup customization */
+.leaflet-popup-content-wrapper {
+    background-color: #16213e !important;
+    color: #eee !important;
+    border-radius: 8px !important;
+    border: 2px solid #0f3460 !important;
+}
+
+.leaflet-popup-tip {
+    background-color: #16213e !important;
+    border: 2px solid #0f3460 !important;
+}
+
+/* Loading state (for future use with HTMX) */
+.htmx-request .htmx-indicator {
+    display: inline-block;
+}
+
+.htmx-indicator {
+    display: none;
+}
