@@ -1,13 +1,23 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends, HTTPException
+from pathlib import Path
+from fastapi import FastAPI, Depends, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
-from .db import get_db, Base, engine
+from .db import get_db, Base, engine, ensure_database_ready
 from .models import City, WorldState
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Check database connection and optionally auto-start Docker container
+    try:
+        ensure_database_ready(auto_start=True)
+    except RuntimeError as e:
+        print(f"\n❌ Startup failed: {e}")
+        raise
+
     # First run convenience: create tables (you can remove after Alembic is solid)
     try:
         Base.metadata.create_all(bind=engine)
@@ -27,11 +37,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Setup templates and static files
+BASE_DIR = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+
 @app.get("/health")
 def health():
     return {"status": "ok"}
 
-@app.get("/world/snapshot")
+@app.get("/")
+async def game_ui(request: Request):
+    """Render the main game UI"""
+    return templates.TemplateResponse("game.html", {"request": request})
+
+@app.get("/api/world/snapshot")
 def world_snapshot(db: Session = Depends(get_db)):
     try:
         cities = db.query(City).order_by(City.name).all()
