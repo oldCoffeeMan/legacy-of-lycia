@@ -5,25 +5,6 @@
 {% block content %}
 <div class="game-container" x-data="gameState()">
     <div id="map" class="game-map"></div>
-
-    <!-- City info panel (shown on hover) -->
-    <div class="city-info-panel" x-show="selectedCity" x-cloak>
-        <h3 x-text="selectedCity?.name"></h3>
-        <div class="city-stats">
-            <div class="stat">
-                <span class="stat-label">Region:</span>
-                <span class="stat-value" x-text="selectedCity?.region"></span>
-            </div>
-            <div class="stat">
-                <span class="stat-label">Prosperity:</span>
-                <span class="stat-value prosperity" x-text="selectedCity?.prosperity"></span>
-            </div>
-            <div class="stat">
-                <span class="stat-label">Unrest:</span>
-                <span class="stat-value unrest" x-text="selectedCity?.unrest"></span>
-            </div>
-        </div>
-    </div>
 </div>
 {% endblock %}
 
@@ -45,7 +26,6 @@ document.addEventListener('alpine:init', () => {
     Alpine.data('gameState', () => ({
         map: null,
         cities: [],
-        selectedCity: null,
         worldTick: 0,
 
         async init() {
@@ -122,12 +102,10 @@ document.addEventListener('alpine:init', () => {
 
                 // Add hover events
                 marker.on('mouseover', () => {
-                    this.selectedCity = city;
                     marker.openPopup();
                 });
 
                 marker.on('mouseout', () => {
-                    this.selectedCity = null;
                     marker.closePopup();
                 });
 

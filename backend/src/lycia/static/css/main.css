@@ -13,6 +13,10 @@ body {
 }
 
 /* App layout */
+html, body {
+    height: 100%;
+}
+
 .app-container {
     display: flex;
     flex-direction: column;
@@ -26,6 +30,7 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-shrink: 0;
 }
 
 .app-header h1 {
@@ -51,7 +56,9 @@ body {
 
 .app-main {
     flex: 1;
-    overflow: hidden;
+    position: relative;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .app-footer {
@@ -61,13 +68,17 @@ body {
     text-align: center;
     font-size: 0.9rem;
     color: #888;
+    flex-shrink: 0;
 }
 
 /* Game container */
 .game-container {
-    position: relative;
-    height: 100%;
-    width: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
 }
 
 /* Map styles */
@@ -268,9 +279,9 @@ body {
 .auth-container {
     display: flex;
     justify-content: center;
-    align-items: center;
-    min-height: 100%;
+    align-items: flex-start;
     padding: 2rem;
+    min-height: 100%;
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
 }
 
@@ -529,16 +540,24 @@ body {
 
 /* Responsive auth pages */
 @media (max-width: 768px) {
+    .auth-container {
+        padding: 1rem;
+    }
+
     .auth-card {
-        padding: 2rem;
+        padding: 1.5rem;
     }
 
     .auth-card h2 {
         font-size: 1.6rem;
     }
 
+    .profile-container {
+        padding: 1rem;
+    }
+
     .profile-card {
-        padding: 2rem;
+        padding: 1.5rem;
     }
 
     .profile-header {
@@ -556,5 +575,39 @@ body {
     .player-info {
         flex-direction: column;
         gap: 0.5rem;
+    }
+}
+
+/* Additional responsive improvements for very small screens */
+@media (max-width: 480px) {
+    .auth-container {
+        padding: 0.5rem;
+    }
+
+    .auth-card {
+        padding: 1rem;
+        max-width: 100%;
+    }
+
+    .profile-container {
+        padding: 0.5rem;
+    }
+
+    .profile-card {
+        padding: 1rem;
+    }
+
+    .auth-card h2 {
+        font-size: 1.4rem;
+    }
+
+    .form-group input {
+        padding: 0.7rem;
+        font-size: 0.95rem;
+    }
+
+    .btn {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.95rem;
     }
 }
