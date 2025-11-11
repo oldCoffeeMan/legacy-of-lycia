@@ -16,8 +16,7 @@ from .auth import (
     authenticate_player,
     get_current_player,
     create_session,
-    destroy_session,
-    require_auth
+    destroy_session
 )
 
 @asynccontextmanager
