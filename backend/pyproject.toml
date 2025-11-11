@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lycia"
+version = "0.1.0"
+description = "Legacy of Lycia - AI-driven multiplayer strategy-simulation game"
+readme = "README.md"
+requires-python = ">=3.13"
+license = {text = "Apache-2.0"}
+authors = [
+    {name = "Legacy of Lycia Contributors"}
+]
+dependencies = [
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "sqlalchemy>=2.0.0",
+    "psycopg2-binary>=2.9.9",
+    "alembic>=1.12.0",
+    "redis>=5.0.0",
+    "jinja2>=3.1.2",
+    "python-multipart>=0.0.6",
+    "bcrypt>=4.1.0",
+    "pydantic-settings>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "httpx>=0.25.0",
+    "jsonschema>=4.19.0",
+    "ruff>=0.1.0",
+    "mypy>=1.6.0",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+packages = ["lycia"]
+
+[tool.setuptools.package-data]
+lycia = ["static/**/*", "templates/**/*"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.mypy]
+python_version = "3.13.9"
+warn_unused_ignores = true
+strict_optional = true
+pretty = true
