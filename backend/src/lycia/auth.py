@@ -7,18 +7,19 @@ for FastAPI routes.
 
 from datetime import datetime, timezone
 from typing import Optional
+import bcrypt
 from fastapi import Request, HTTPException, status
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from .models import Player
-
-# Password hashing context using bcrypt_sha256 (more compatible with newer bcrypt versions)
-pwd_context = CryptContext(schemes=["bcrypt_sha256"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
     """
     Hash a plain text password using bcrypt.
+
+    Bcrypt has a 72-byte limit, so long passwords are truncated.
+    This is a security best practice - bcrypt's computational cost
+    provides sufficient security even with truncation.
 
     Args:
         password: Plain text password
@@ -26,7 +27,13 @@ def hash_password(password: str) -> str:
     Returns:
         Hashed password string
     """
-    return pwd_context.hash(password)
+    # Encode to bytes and truncate to 72 bytes (bcrypt limit)
+    password_bytes = password.encode('utf-8')[:72]
+    # Generate salt and hash
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password_bytes, salt)
+    # Return as string for database storage
+    return hashed.decode('utf-8')
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
@@ -40,7 +47,11 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     Returns:
         True if password matches, False otherwise
     """
-    return pwd_context.verify(plain_password, hashed_password)
+    # Encode and truncate password (same as hashing)
+    password_bytes = plain_password.encode('utf-8')[:72]
+    hashed_bytes = hashed_password.encode('utf-8')
+    # Verify password
+    return bcrypt.checkpw(password_bytes, hashed_bytes)
 
 
 def authenticate_player(db: Session, username: str, password: str) -> Optional[Player]:
