@@ -21,18 +21,21 @@ from .auth import (
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Check database connection and optionally auto-start Docker container
-    try:
-        ensure_database_ready(auto_start=True)
-    except RuntimeError as e:
-        print(f"\n[ERROR] Startup failed: {e}")
-        raise
+    # Skip database checks in test mode
+    import os
+    if os.getenv("TESTING") != "1":
+        # Check database connection and optionally auto-start Docker container
+        try:
+            ensure_database_ready(auto_start=True)
+        except RuntimeError as e:
+            print(f"\n[ERROR] Startup failed: {e}")
+            raise
 
-    # First run convenience: create tables (you can remove after Alembic is solid)
-    try:
-        Base.metadata.create_all(bind=engine)
-    except SQLAlchemyError as e:
-        print(f"Error creating database tables: {e}")
+        # First run convenience: create tables (you can remove after Alembic is solid)
+        try:
+            Base.metadata.create_all(bind=engine)
+        except SQLAlchemyError as e:
+            print(f"Error creating database tables: {e}")
         raise
 
     yield

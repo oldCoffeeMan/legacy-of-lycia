@@ -39,7 +39,7 @@ jobs:
       - name: Run tests with pytest
         run: |
           cd backend
-          PYTHONPATH=src pytest tests/ -v --cov=lycia --cov-report=term-missing
+          TESTING=1 PYTHONPATH=src pytest tests/ -v --cov=lycia --cov-report=term-missing
 
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4

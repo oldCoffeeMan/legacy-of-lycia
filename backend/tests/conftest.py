@@ -3,6 +3,7 @@ Pytest configuration and fixtures for Legacy of Lycia tests.
 
 Provides test database, client, and common fixtures.
 """
+import os
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -11,6 +12,8 @@ from lycia.db import Base, get_db
 from lycia.app import app
 from lycia.models import WorldState, City, Player
 
+# Set testing environment variable to skip database startup checks
+os.environ["TESTING"] = "1"
 
 # Use in-memory SQLite for tests
 TEST_DATABASE_URL = "sqlite:///:memory:"
