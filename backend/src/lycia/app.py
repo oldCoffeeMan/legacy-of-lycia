@@ -36,7 +36,7 @@ async def lifespan(app: FastAPI):
             Base.metadata.create_all(bind=engine)
         except SQLAlchemyError as e:
             print(f"Error creating database tables: {e}")
-        raise
+            raise
 
     yield
     # optional: clean up resources on shutdown
