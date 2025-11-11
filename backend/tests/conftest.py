@@ -9,7 +9,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from lycia.db import Base, get_db
 from lycia.app import app
-from lycia.models import WorldState, City
+from lycia.models import WorldState, City, Player
 
 
 # Use in-memory SQLite for tests
