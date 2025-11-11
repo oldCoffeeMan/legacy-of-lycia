@@ -15,12 +15,16 @@ from lycia.models import WorldState, City, Player
 # Set testing environment variable to skip database startup checks
 os.environ["TESTING"] = "1"
 
-# Use in-memory SQLite for tests
+# Use in-memory SQLite for tests with shared connection pool
+# file::memory:?cache=shared allows multiple connections to the same in-memory database
 TEST_DATABASE_URL = "sqlite:///:memory:"
 
 engine = create_engine(
     TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
+    connect_args={
+        "check_same_thread": False,
+    },
+    poolclass=__import__('sqlalchemy.pool', fromlist=['StaticPool']).StaticPool,
     future=True
 )
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine, future=True)
