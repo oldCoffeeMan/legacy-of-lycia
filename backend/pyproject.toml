@@ -23,6 +23,7 @@ dependencies = [
     "python-multipart>=0.0.6",
     "bcrypt>=4.1.0",
     "pydantic-settings>=2.0.0",
+    "itsdangerous>=2.1.0",
 ]
 
 [project.optional-dependencies]
