@@ -1,11 +1,11 @@
-import os
 import subprocess
 import time
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 from sqlalchemy.exc import OperationalError
+from .settings import settings
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg2://postgres:postgres@localhost:5432/lycia")
+DATABASE_URL = settings.database_url
 
 class Base(DeclarativeBase):
     pass

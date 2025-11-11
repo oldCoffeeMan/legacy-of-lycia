@@ -1,6 +1,5 @@
 from contextlib import asynccontextmanager
 from pathlib import Path
-import os
 from fastapi import FastAPI, Depends, HTTPException, Request, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
@@ -9,6 +8,7 @@ from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
+from .settings import settings
 from .db import get_db, Base, engine, ensure_database_ready
 from .models import City, WorldState, Player
 from .auth import (
@@ -39,23 +39,22 @@ async def lifespan(app: FastAPI):
     yield
     # optional: clean up resources on shutdown
 
-app = FastAPI(title="Legacy of Lycia API", lifespan=lifespan)
+app = FastAPI(title=settings.app_title, lifespan=lifespan)
 
 # Session middleware for authentication
 # IMPORTANT: In production, use a strong secret key from environment variable
-SESSION_SECRET = os.getenv("SESSION_SECRET", "dev-secret-change-in-production-min-32-chars!")
 app.add_middleware(
     SessionMiddleware,
-    secret_key=SESSION_SECRET,
+    secret_key=settings.session_secret,
     session_cookie="lycia_session",
-    max_age=7 * 24 * 60 * 60,  # 7 days
+    max_age=settings.session_max_age,
     same_site="lax",
     https_only=False  # Set to True in production with HTTPS
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=settings.cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

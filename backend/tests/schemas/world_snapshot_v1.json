@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "World Snapshot Response Schema",
+  "description": "Schema for /api/world/snapshot endpoint response",
+  "type": "object",
+  "required": ["tick", "cities"],
+  "properties": {
+    "tick": {
+      "type": "integer",
+      "description": "Current world simulation tick",
+      "minimum": 0
+    },
+    "cities": {
+      "type": "array",
+      "description": "List of all cities in the world",
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "region", "prosperity", "unrest", "lat", "lon"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "description": "Unique city identifier"
+          },
+          "name": {
+            "type": "string",
+            "description": "City name",
+            "minLength": 1
+          },
+          "region": {
+            "type": "string",
+            "description": "Geographic region"
+          },
+          "prosperity": {
+            "type": "integer",
+            "description": "City prosperity level (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "unrest": {
+            "type": "integer",
+            "description": "City unrest level (0-100)",
+            "minimum": 0,
+            "maximum": 100
+          },
+          "lat": {
+            "type": "number",
+            "description": "Latitude coordinate",
+            "minimum": -90,
+            "maximum": 90
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude coordinate",
+            "minimum": -180,
+            "maximum": 180
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
