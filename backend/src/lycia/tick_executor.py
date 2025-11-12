@@ -17,7 +17,6 @@ from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import text, select
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import SQLAlchemyError
 
 from .db import get_db_session
 from .models import WorldState, TickLog, TickStatus
@@ -253,7 +252,7 @@ class TickExecutor:
                         print(f"[TickExecutor] Tick {tick_log.tick} completed in {tick_log.duration_ms}ms")
                     else:
                         # Another worker has the lock
-                        print(f"[TickExecutor] Could not acquire lock (another worker is active)")
+                        print("[TickExecutor] Could not acquire lock (another worker is active)")
 
             except Exception as e:
                 print(f"[TickExecutor] Error in tick loop: {e}")

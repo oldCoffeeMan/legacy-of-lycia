@@ -4,7 +4,7 @@ Example subsystems for testing and demonstration.
 These are simple placeholder subsystems that demonstrate the subsystem API
 without implementing complex game logic.
 """
-from .protocol import Subsystem, TickContext
+from .protocol import TickContext
 from .phase import SubsystemPhase
 
 

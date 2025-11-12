@@ -3,7 +3,6 @@ Subsystem Registry
 
 Manages registration, dependency resolution, and execution order of subsystems.
 """
-from typing import Any
 from collections import defaultdict, deque
 from .protocol import Subsystem
 from .phase import SubsystemPhase

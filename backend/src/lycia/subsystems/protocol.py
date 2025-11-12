@@ -4,9 +4,12 @@ Subsystem Protocol and Context Definitions
 Defines the interfaces that subsystems must implement and the context
 they receive during execution.
 """
-from typing import Protocol, Any, runtime_checkable
+from typing import Protocol, Any, runtime_checkable, TYPE_CHECKING
 from random import Random
 from sqlalchemy.orm import Session
+
+if TYPE_CHECKING:
+    from .phase import SubsystemPhase
 
 
 class TickContext(Protocol):
@@ -94,7 +97,7 @@ class Subsystem(Protocol):
         ...
 
     @property
-    def phase(self) -> "SubsystemPhase":  # type: ignore
+    def phase(self) -> "SubsystemPhase":
         """
         Execution phase for this subsystem.
 
