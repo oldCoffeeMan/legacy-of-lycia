@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
-from sqlalchemy import Integer, String, Float, DateTime
+from sqlalchemy import Integer, String, Float, DateTime, Text, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column
+from enum import Enum
 from .db import Base
 
 class City(Base):
@@ -50,3 +51,54 @@ class Player(Base):
     # level: Mapped[int] = mapped_column(Integer, default=1)
     # faction_id: Mapped[int | None] = mapped_column(ForeignKey("factions.id"), nullable=True)
     # characters: Mapped[list["Character"]] = relationship(back_populates="player")
+
+
+class TickStatus(str, Enum):
+    """Status of a tick execution."""
+    STARTED = "started"
+    SUCCESS = "success"
+    FAILED = "failed"
+    ROLLED_BACK = "rolled_back"
+
+
+class TickLog(Base):
+    """
+    Audit log for each tick execution.
+
+    Provides durability, observability, and crash recovery support.
+    Each tick execution creates exactly one log entry.
+    """
+    __tablename__ = "tick_logs"
+
+    # Primary key
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
+    # Tick identifier - the world tick number this log entry is for
+    tick: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    # Execution tracking
+    status: Mapped[TickStatus] = mapped_column(
+        SQLEnum(TickStatus, native_enum=False, length=20),
+        nullable=False,
+        default=TickStatus.STARTED
+    )
+
+    # Timestamps for performance monitoring
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
+    ended_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+
+    # Performance metrics
+    duration_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Worker identification for debugging distributed scenarios
+    worker_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    # Error tracking
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Deterministic RNG seed used for this tick
+    rng_seed: Mapped[str] = mapped_column(String(255), nullable=False)

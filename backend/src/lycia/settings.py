@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     app_title: str = "Legacy of Lycia API"
     debug: bool = False
 
+    # Tick System
+    tick_interval_seconds: float = 2.0  # Dev: 1-2s, Prod: 5-15s
+    tick_enabled: bool = True  # Allow disabling tick loop for testing
+
 
 # Global settings instance
 settings = Settings()

@@ -1,7 +1,8 @@
 import subprocess
 import time
+from contextlib import contextmanager
 from sqlalchemy import create_engine, text
-from sqlalchemy.orm import sessionmaker, DeclarativeBase
+from sqlalchemy.orm import sessionmaker, DeclarativeBase, Session
 from sqlalchemy.exc import OperationalError
 from .settings import settings
 
@@ -14,6 +15,20 @@ engine = create_engine(DATABASE_URL, echo=False, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
 def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+@contextmanager
+def get_db_session() -> Session:
+    """
+    Context manager for database sessions in non-FastAPI contexts.
+
+    Used by background tasks like the tick executor.
+    """
     db = SessionLocal()
     try:
         yield db

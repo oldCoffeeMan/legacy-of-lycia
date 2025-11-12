@@ -6,7 +6,7 @@ Provides test database, client, and common fixtures.
 import os
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from lycia.db import Base, get_db
 from lycia.app import app
@@ -41,6 +41,16 @@ def db_session():
     # Create all tables
     Base.metadata.create_all(bind=engine)
 
+    # Create tick_lock table for SQLite-based distributed locking
+    with engine.connect() as conn:
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS tick_lock (
+                lock_id INTEGER PRIMARY KEY,
+                acquired_at TEXT NOT NULL
+            )
+        """))
+        conn.commit()
+
     session = TestingSessionLocal()
     try:
         yield session
@@ -48,6 +58,10 @@ def db_session():
         session.close()
         # Drop all tables after test
         Base.metadata.drop_all(bind=engine)
+        # Drop tick_lock table
+        with engine.connect() as conn:
+            conn.execute(text("DROP TABLE IF EXISTS tick_lock"))
+            conn.commit()
 
 
 @pytest.fixture(scope="function")

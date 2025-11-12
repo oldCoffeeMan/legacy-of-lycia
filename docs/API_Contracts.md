@@ -1,8 +1,8 @@
 ---
 title: Legacy of Lycia – API Contracts
-version: 1.0
+version: 1.1
 status: Living Document
-updated: 2025-11-11
+updated: 2025-11-13
 license: CC BY 4.0
 ---
 
@@ -107,6 +107,56 @@ See `backend/tests/schemas/world_snapshot_v1.json`
   "detail": "Error message description"
 }
 ```
+
+---
+
+## Tick System Health
+
+### Endpoint
+```
+GET /api/tick/health
+```
+
+### Description
+Returns health and performance metrics for the authoritative tick loop system.
+
+### Authentication
+None required
+
+### Response Example
+```json
+{
+  "current_tick": 1547,
+  "last_success_tick": 1547,
+  "last_success_time": "2025-11-13T12:34:56.789Z",
+  "p95_latency_ms": 15,
+  "tick_interval_ms": 2000,
+  "worker_id": "550e8400-e29b-41d4-a716-446655440000",
+  "running": true
+}
+```
+
+### Field Definitions
+
+| Field | Type | Description | Constraints |
+|-------|------|-------------|-------------|
+| `current_tick` | integer | Current world tick number | ≥ 0 |
+| `last_success_tick` | integer\|null | Last successfully completed tick | ≥ 0 or null |
+| `last_success_time` | string\|null | ISO 8601 timestamp of last success | ISO 8601 or null |
+| `p95_latency_ms` | integer\|null | 95th percentile tick latency in ms | ≥ 0 or null |
+| `tick_interval_ms` | integer | Configured tick interval in ms | > 0 |
+| `worker_id` | string\|null | UUID of the active tick worker | UUID or null |
+| `running` | boolean | Whether tick loop is currently running | true/false |
+
+### Status Codes
+- `200 OK` - Successful response
+- `500 Internal Server Error` - Error retrieving health metrics
+
+### Use Cases
+- Monitoring tick system performance
+- Detecting tick loop failures or slowdowns
+- Verifying singleton worker execution
+- Performance benchmarking
 
 ---
 

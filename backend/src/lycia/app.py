@@ -18,6 +18,7 @@ from .auth import (
     create_session,
     destroy_session
 )
+from .tick_executor import start_tick_loop, stop_tick_loop, get_tick_health
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,8 +39,14 @@ async def lifespan(app: FastAPI):
             print(f"Error creating database tables: {e}")
             raise
 
+        # Start the tick loop
+        await start_tick_loop()
+
     yield
-    # optional: clean up resources on shutdown
+
+    # Shutdown: stop the tick loop
+    if os.getenv("TESTING") != "1":
+        await stop_tick_loop()
 
 app = FastAPI(title=settings.app_title, lifespan=lifespan)
 
@@ -70,6 +77,22 @@ app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="stat
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/api/tick/health")
+def tick_health():
+    """
+    Get health metrics for the tick system.
+
+    Returns current tick, last success time, and performance metrics.
+    """
+    try:
+        return get_tick_health()
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving tick health: {str(e)}"
+        )
 
 @app.get("/")
 async def root(request: Request, db: Session = Depends(get_db)):
