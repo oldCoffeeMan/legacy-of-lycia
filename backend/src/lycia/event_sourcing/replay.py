@@ -96,6 +96,9 @@ class EventReplayer:
             f"{skipped_count} skipped, {error_count} errors"
         )
 
+        # Commit all changes from reducers
+        self.db.commit()
+
         # Return summary
         return {
             "target_tick": target_tick,

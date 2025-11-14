@@ -38,17 +38,25 @@ class CityProsperityChangedReducer:
         Args:
             event: Event data
             db: Database session
+
+        Raises:
+            ValueError: If required fields are missing
         """
         payload = event["payload"]
         city_id = payload.get("city_id")
         new_prosperity = payload.get("new_prosperity")
 
         if city_id is None or new_prosperity is None:
-            return
+            raise ValueError(
+                f"Missing required fields in payload: "
+                f"city_id={city_id}, new_prosperity={new_prosperity}"
+            )
 
         city = db.query(City).filter_by(id=city_id).first()
-        if city:
-            city.prosperity = new_prosperity
+        if not city:
+            raise ValueError(f"City with id={city_id} not found")
+
+        city.prosperity = new_prosperity
 
 
 class CityProsperityBoostedReducer:
@@ -80,14 +88,22 @@ class CityProsperityBoostedReducer:
         Args:
             event: Event data
             db: Database session
+
+        Raises:
+            ValueError: If required fields are missing
         """
         payload = event["payload"]
         city_id = payload.get("city_id")
         new_prosperity = payload.get("new_prosperity")
 
         if city_id is None or new_prosperity is None:
-            return
+            raise ValueError(
+                f"Missing required fields in payload: "
+                f"city_id={city_id}, new_prosperity={new_prosperity}"
+            )
 
         city = db.query(City).filter_by(id=city_id).first()
-        if city:
-            city.prosperity = new_prosperity
+        if not city:
+            raise ValueError(f"City with id={city_id} not found")
+
+        city.prosperity = new_prosperity
