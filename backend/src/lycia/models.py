@@ -170,3 +170,140 @@ class ActionCommand(Base):
         # Optimize queue processing queries
         Index('ix_action_commands_queue_processing', 'status', 'valid_from_tick', 'expires_at_tick'),
     )
+
+
+# =============================================================================
+# EVENT SOURCING MODELS (S2-04)
+# =============================================================================
+
+class Event(Base):
+    """
+    Event log for event sourcing pattern.
+
+    All state mutations are recorded as events in an append-only log.
+    This enables:
+    - State reconstruction from events
+    - Debugging and audit trails
+    - Time-travel queries
+    - Event replay for testing
+
+    Design principles:
+    - Append-only (no updates or deletes)
+    - Schema versioning for forward compatibility
+    - Actor tracking (subsystem or player that caused the event)
+    - JSON payload for flexibility
+    """
+    __tablename__ = "events"
+
+    # Primary key
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
+    # Tick when event occurred
+    tick: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    # Event type (e.g., "city.prosperity_changed", "unit.moved")
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    # Schema version for forward compatibility
+    schema_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    # Actor that caused the event (subsystem name or "player:{id}")
+    actor: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    # Event payload (JSON)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False)
+
+    # Metadata
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        index=True
+    )
+
+    # Optional: link to action command that caused this event
+    command_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+
+    # Indexes
+    __table_args__ = (
+        # Optimize replay queries (snapshot tick to current)
+        Index('ix_events_tick_created', 'tick', 'created_at'),
+        # Optimize event type queries
+        Index('ix_events_type_tick', 'event_type', 'tick'),
+    )
+
+
+class WorldSnapshot(Base):
+    """
+    Periodic snapshot of world state.
+
+    Snapshots enable fast state reconstruction by loading the latest
+    snapshot and replaying only events since that snapshot.
+
+    Frequency: Configurable via settings (e.g., every 60 ticks)
+    """
+    __tablename__ = "world_snapshots"
+
+    # Primary key
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
+    # Tick when snapshot was taken
+    tick: Mapped[int] = mapped_column(Integer, nullable=False, unique=True, index=True)
+
+    # World state snapshot
+    current_tick: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    # Metadata
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    # Snapshot data version (for schema evolution)
+    snapshot_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+
+class CitySnapshot(Base):
+    """
+    Periodic snapshot of city state.
+
+    Stores complete city state at specific ticks to enable fast
+    state reconstruction and historical queries.
+    """
+    __tablename__ = "city_snapshots"
+
+    # Primary key
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
+    # Tick when snapshot was taken
+    tick: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    # City ID
+    city_id: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    # City state snapshot
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    region: Mapped[str] = mapped_column(String(100), nullable=False)
+    prosperity: Mapped[int] = mapped_column(Integer, nullable=False)
+    unrest: Mapped[int] = mapped_column(Integer, nullable=False)
+    latitude: Mapped[float] = mapped_column(Float, nullable=False)
+    longitude: Mapped[float] = mapped_column(Float, nullable=False)
+
+    # Metadata
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
+
+    # Snapshot data version
+    snapshot_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+
+    # Constraints
+    __table_args__ = (
+        # One snapshot per city per tick
+        UniqueConstraint('tick', 'city_id', name='uq_city_snapshot_tick'),
+        # Optimize queries for latest snapshot
+        Index('ix_city_snapshots_city_tick', 'city_id', 'tick'),
+    )

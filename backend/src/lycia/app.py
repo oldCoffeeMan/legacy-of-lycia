@@ -51,9 +51,26 @@ async def lifespan(app: FastAPI):
         action_registry.register(TestActionHandler())
         action_registry.register(ProsperityBoostHandler())
 
-        # Register action command subsystem
+        # Register subsystems
         subsystem_registry = get_subsystem_registry()
         subsystem_registry.register(ActionCommandSubsystem())
+
+        # Register event sourcing subsystems (S2-04)
+        from lycia.subsystems.event_persistence_subsystem import EventPersistenceSubsystem
+        from lycia.subsystems.snapshot_subsystem import SnapshotSubsystem
+        from lycia.event_sourcing.example_reducers import (
+            CityProsperityChangedReducer,
+            CityProsperityBoostedReducer,
+        )
+        from lycia.event_sourcing import get_event_reducer_registry
+
+        subsystem_registry.register(EventPersistenceSubsystem())
+        subsystem_registry.register(SnapshotSubsystem())
+
+        # Register event reducers
+        reducer_registry = get_event_reducer_registry()
+        reducer_registry.register(CityProsperityChangedReducer())
+        reducer_registry.register(CityProsperityBoostedReducer())
 
         # Start the tick loop
         await start_tick_loop()

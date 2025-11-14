@@ -34,6 +34,11 @@ class Settings(BaseSettings):
     tick_interval_seconds: float = 2.0  # Dev: 1-2s, Prod: 5-15s
     tick_enabled: bool = True  # Allow disabling tick loop for testing
 
+    # Event Sourcing & Snapshots (S2-04)
+    snapshot_frequency: int = 60  # Create snapshot every N ticks
+    enable_event_sourcing: bool = True  # Enable event logging
+    event_batch_size: int = 1000  # Max events to process in single replay batch
+
 
 # Global settings instance
 settings = Settings()
