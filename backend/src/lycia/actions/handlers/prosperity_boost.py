@@ -6,7 +6,7 @@ Demonstrates semantic validation (checking city ownership/existence).
 """
 
 from sqlalchemy.orm import Session
-from lycia.actions.protocol import ValidationResult, ValidationError
+from lycia.actions.protocol import ValidationResult
 from lycia.models import City
 
 

@@ -5,7 +5,7 @@ This is a simple handler that validates a message parameter and emits an event.
 """
 
 from sqlalchemy.orm import Session
-from lycia.actions.protocol import ValidationResult, ValidationError
+from lycia.actions.protocol import ValidationResult
 
 
 class TestActionHandler:

@@ -6,7 +6,6 @@ The registry is used to route commands to the appropriate handler during
 the INTENTS phase of tick execution.
 """
 
-from typing import cast
 from .protocol import ActionHandler
 
 
