@@ -305,7 +305,9 @@ def enqueue_action(
     except IntegrityError as e:
         db.rollback()
         # Duplicate command submission
-        if "uq_player_intent_tick" in str(e.orig):
+        # Check for unique constraint violation (works with both PostgreSQL and SQLite)
+        error_str = str(e.orig).lower() if hasattr(e, 'orig') else str(e).lower()
+        if "uq_player_intent_tick" in error_str or "unique constraint" in error_str:
             raise HTTPException(
                 status_code=409,
                 detail=f"Duplicate command: You already have a '{action.intent}' command queued for tick {action.valid_from_tick}"
