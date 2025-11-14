@@ -14,7 +14,7 @@ import hashlib
 import random
 import uuid
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Any, Optional
 from sqlalchemy import text, select
 from sqlalchemy.orm import Session
 
@@ -137,29 +137,39 @@ class TickExecutor:
 
         print(f"[Tick {tick}] Processing {len(subsystems)} subsystems with seed={seed}")
 
+        # Create shared event buffer for this tick
+        # All subsystems will append to this same list
+        tick_events: list[dict[str, Any]] = []
+
         # Execute each subsystem with its own context
         for subsystem in subsystems:
-            # Create subsystem-specific context
+            # Create subsystem-specific context with shared event buffer
             ctx = TickContextImpl(
                 tick=tick,
                 db=db,
                 rng=base_rng,
                 subsystem_name=subsystem.name,
-                config={}  # TODO: Load from config file/database
+                config={},  # TODO: Load from config file/database
+                events=tick_events  # Pass shared buffer
             )
 
             try:
                 # Execute subsystem
                 subsystem.apply(ctx)
 
-                # Log emitted events (for future event processing)
-                if ctx.events:
-                    print(f"  [{subsystem.name}] Emitted {len(ctx.events)} events")
+                # Log emitted events count (shared buffer grows across subsystems)
+                event_count = len([e for e in tick_events if e.get("subsystem") == subsystem.name])
+                if event_count > 0:
+                    print(f"  [{subsystem.name}] Emitted {event_count} events")
 
             except Exception as e:
                 # Log subsystem failure but continue
                 print(f"  [ERROR] Subsystem '{subsystem.name}' failed: {e}")
                 raise  # Re-raise to mark tick as failed
+
+        # Log total events for this tick
+        if tick_events:
+            print(f"  [TICK {tick}] Total events emitted: {len(tick_events)}")
 
     def execute_tick(self, db: Session) -> Optional[TickLog]:
         """

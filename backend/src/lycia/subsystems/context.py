@@ -21,7 +21,8 @@ class TickContextImpl:
         db: Session,
         rng: Random,
         subsystem_name: str,
-        config: dict[str, Any] | None = None
+        config: dict[str, Any] | None = None,
+        events: list[dict[str, Any]] | None = None
     ):
         """
         Initialize tick context.
@@ -32,13 +33,15 @@ class TickContextImpl:
             rng: Base RNG (will be re-seeded per subsystem)
             subsystem_name: Name of the subsystem using this context
             config: Configuration dictionary
+            events: Shared event buffer for the tick (if None, creates new list)
         """
         self._tick = tick
         self._db = db
         self._base_rng = rng
         self._subsystem_name = subsystem_name
         self._config = config or {}
-        self._events: list[dict[str, Any]] = []
+        # Use shared event buffer if provided, otherwise create new list
+        self._events: list[dict[str, Any]] = events if events is not None else []
 
         # Create subsystem-specific RNG
         self._rng = Random(f"{rng.getstate()}_{subsystem_name}")
