@@ -45,7 +45,7 @@ async def lifespan(app: FastAPI):
         # Register action handlers (S2-03)
         from lycia.actions.handlers import TestActionHandler, ProsperityBoostHandler
         from lycia.subsystems.action_command_subsystem import ActionCommandSubsystem
-        from lycia.subsystems import get_subsystem_registry
+        from lycia.tick_executor import get_subsystem_registry
 
         action_registry = get_action_handler_registry()
         action_registry.register(TestActionHandler())
