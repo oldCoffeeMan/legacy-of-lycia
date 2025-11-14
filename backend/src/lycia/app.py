@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from .settings import settings
 from .db import get_db, Base, engine, ensure_database_ready
-from .models import City, WorldState, Player
+from .models import City, WorldState, Player, ActionCommand, ActionCommandStatus
 from .auth import (
     hash_password,
     authenticate_player,
@@ -19,6 +19,9 @@ from .auth import (
     destroy_session
 )
 from .tick_executor import start_tick_loop, stop_tick_loop, get_tick_health
+from .actions import get_action_handler_registry
+from pydantic import BaseModel, Field
+from datetime import datetime
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -38,6 +41,19 @@ async def lifespan(app: FastAPI):
         except SQLAlchemyError as e:
             print(f"Error creating database tables: {e}")
             raise
+
+        # Register action handlers (S2-03)
+        from lycia.actions.handlers import TestActionHandler, ProsperityBoostHandler
+        from lycia.subsystems.action_command_subsystem import ActionCommandSubsystem
+        from lycia.subsystems import get_subsystem_registry
+
+        action_registry = get_action_handler_registry()
+        action_registry.register(TestActionHandler())
+        action_registry.register(ProsperityBoostHandler())
+
+        # Register action command subsystem
+        subsystem_registry = get_subsystem_registry()
+        subsystem_registry.register(ActionCommandSubsystem())
 
         # Start the tick loop
         await start_tick_loop()
@@ -147,6 +163,248 @@ def world_snapshot(db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=500,
             detail=f"Unexpected error: {str(e)}"
+        )
+
+
+# ============================================================================
+# ACTION COMMAND ENDPOINTS (S2-03)
+# ============================================================================
+
+class EnqueueActionRequest(BaseModel):
+    """Request model for enqueueing an action command."""
+    intent: str = Field(..., description="Action intent (e.g., 'move_unit')")
+    version: int = Field(default=1, description="Handler version")
+    params: dict = Field(..., description="Action-specific parameters")
+    valid_from_tick: int = Field(..., description="First tick when command can execute")
+    expires_at_tick: int = Field(..., description="Last tick when command can execute")
+
+    model_config = {
+        "json_schema_extra": {
+            "example": {
+                "intent": "move_unit",
+                "version": 1,
+                "params": {"unit_id": 1, "destination": {"x": 10, "y": 20}},
+                "valid_from_tick": 100,
+                "expires_at_tick": 105
+            }
+        }
+    }
+
+
+class EnqueueActionResponse(BaseModel):
+    """Response model for enqueued action command."""
+    command_id: int
+    status: str
+    message: str
+    submitted_at: datetime
+
+
+class ActionCommandErrorResponse(BaseModel):
+    """Error response for action command validation failures."""
+    error: str
+    validation_errors: dict | None = None
+
+
+@app.post("/api/actions/enqueue", response_model=EnqueueActionResponse)
+def enqueue_action(
+    request: Request,
+    action: EnqueueActionRequest,
+    db: Session = Depends(get_db)
+):
+    """
+    Enqueue an action command for processing.
+
+    This endpoint allows authenticated players to submit action commands
+    that will be validated and executed during the next eligible tick.
+
+    **Authentication Required**: Must be logged in.
+
+    **Request Body**:
+    - `intent`: The action type (e.g., "move_unit", "build_structure")
+    - `version`: Handler version (default: 1)
+    - `params`: Action-specific parameters (varies by intent)
+    - `valid_from_tick`: First tick when this command can execute
+    - `expires_at_tick`: Last tick when this command can execute
+
+    **Validation**:
+    1. **Temporal validation**: Ensures valid_from_tick <= expires_at_tick
+    2. **Handler validation**: Checks that a handler exists for intent@version
+    3. **Syntactic validation**: Validates params schema via handler
+    4. **Duplicate prevention**: Rejects duplicate (player, intent, valid_from_tick)
+
+    **Returns**:
+    - `command_id`: Unique identifier for tracking
+    - `status`: "pending" (queued for processing)
+    - `message`: Success message
+    - `submitted_at`: Timestamp
+
+    **Error Responses**:
+    - `401 Unauthorized`: Not logged in
+    - `400 Bad Request`: Validation failed (see validation_errors)
+    - `409 Conflict`: Duplicate command submission
+    - `500 Internal Server Error`: Database or system error
+    """
+    # Authentication check
+    player = get_current_player(request, db)
+    if not player:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required"
+        )
+
+    # Temporal validation
+    if action.valid_from_tick > action.expires_at_tick:
+        raise HTTPException(
+            status_code=400,
+            detail="valid_from_tick must be <= expires_at_tick"
+        )
+
+    # Check if handler exists
+    registry = get_action_handler_registry()
+    handler = registry.get(action.intent, action.version)
+    if handler is None:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No handler registered for {action.intent}@{action.version}"
+        )
+
+    # Syntactic validation (schema)
+    validation_result = handler.validate_params(action.params)
+    if not validation_result.valid:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "Invalid parameters",
+                "validation_errors": validation_result.to_dict()
+            }
+        )
+
+    try:
+        # Create command
+        command = ActionCommand(
+            player_id=player.id,
+            intent=action.intent,
+            version=action.version,
+            params=action.params,
+            valid_from_tick=action.valid_from_tick,
+            expires_at_tick=action.expires_at_tick,
+            status=ActionCommandStatus.PENDING
+        )
+
+        db.add(command)
+        db.commit()
+        db.refresh(command)
+
+        return EnqueueActionResponse(
+            command_id=command.id,
+            status=command.status.value,
+            message=f"Command queued successfully. Will be processed on tick {action.valid_from_tick}.",
+            submitted_at=command.submitted_at
+        )
+
+    except IntegrityError as e:
+        db.rollback()
+        # Duplicate command submission
+        if "uq_player_intent_tick" in str(e.orig):
+            raise HTTPException(
+                status_code=409,
+                detail=f"Duplicate command: You already have a '{action.intent}' command queued for tick {action.valid_from_tick}"
+            )
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )
+    except SQLAlchemyError as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )
+
+
+@app.get("/api/actions/my-commands")
+def get_my_commands(
+    request: Request,
+    db: Session = Depends(get_db),
+    status: str | None = None,
+    limit: int = 50
+):
+    """
+    Get action commands for the authenticated player.
+
+    **Authentication Required**: Must be logged in.
+
+    **Query Parameters**:
+    - `status`: Filter by status (pending, processed, rejected, expired)
+    - `limit`: Maximum number of commands to return (default: 50, max: 100)
+
+    **Returns**:
+    List of commands with:
+    - `id`: Command ID
+    - `intent`: Action type
+    - `version`: Handler version
+    - `params`: Action parameters
+    - `valid_from_tick`: Execution window start
+    - `expires_at_tick`: Execution window end
+    - `status`: Current status
+    - `submitted_at`: Submission timestamp
+    - `processed_at`: Processing timestamp (if processed)
+    - `validation_errors`: Error details (if rejected)
+    """
+    # Authentication check
+    player = get_current_player(request, db)
+    if not player:
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required"
+        )
+
+    # Validate limit
+    if limit > 100:
+        limit = 100
+
+    try:
+        query = db.query(ActionCommand).filter(ActionCommand.player_id == player.id)
+
+        # Filter by status if provided
+        if status:
+            try:
+                status_enum = ActionCommandStatus(status)
+                query = query.filter(ActionCommand.status == status_enum)
+            except ValueError:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Invalid status: {status}. Must be one of: pending, processed, rejected, expired"
+                )
+
+        # Order by most recent first
+        commands = query.order_by(ActionCommand.submitted_at.desc()).limit(limit).all()
+
+        return {
+            "commands": [
+                {
+                    "id": cmd.id,
+                    "intent": cmd.intent,
+                    "version": cmd.version,
+                    "params": cmd.params,
+                    "valid_from_tick": cmd.valid_from_tick,
+                    "expires_at_tick": cmd.expires_at_tick,
+                    "status": cmd.status.value,
+                    "submitted_at": cmd.submitted_at.isoformat(),
+                    "processed_at": cmd.processed_at.isoformat() if cmd.processed_at else None,
+                    "processed_at_tick": cmd.processed_at_tick,
+                    "validation_errors": cmd.validation_errors,
+                }
+                for cmd in commands
+            ]
+        }
+
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
         )
 
 

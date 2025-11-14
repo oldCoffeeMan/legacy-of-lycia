@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from sqlalchemy import Integer, String, Float, DateTime, Text, Enum as SQLEnum
+from sqlalchemy import Integer, String, Float, DateTime, Text, Enum as SQLEnum, ForeignKey, JSON, UniqueConstraint, Index
 from sqlalchemy.orm import Mapped, mapped_column
 from enum import Enum
 from .db import Base
@@ -102,3 +102,71 @@ class TickLog(Base):
 
     # Deterministic RNG seed used for this tick
     rng_seed: Mapped[str] = mapped_column(String(255), nullable=False)
+
+
+class ActionCommandStatus(str, Enum):
+    """Status of an action command in the queue."""
+    PENDING = "pending"           # Waiting to be processed
+    PROCESSED = "processed"       # Successfully executed
+    REJECTED = "rejected"         # Failed validation
+    EXPIRED = "expired"           # Expired before processing
+
+
+class ActionCommand(Base):
+    """
+    Action command queue for player and AI intents.
+
+    Commands are enqueued via REST API and consumed by the INTENTS subsystem
+    during tick execution. Each command is processed exactly once.
+
+    Design principles:
+    - Durable storage ensures commands survive server restarts
+    - Unique constraints prevent duplicate submissions
+    - Temporal validation (valid_from_tick, expires_at_tick) ensures fairness
+    - Structured validation errors provide clear feedback
+    - Event sourcing via handlers ensures audit trail
+    """
+    __tablename__ = "action_commands"
+
+    # Primary key
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+
+    # Player identification
+    player_id: Mapped[int] = mapped_column(ForeignKey("players.id"), nullable=False, index=True)
+
+    # Command specification
+    intent: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g., "move_unit", "build_structure"
+    version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # Handler version
+    params: Mapped[dict] = mapped_column(JSON, nullable=False)  # Action-specific parameters
+
+    # Temporal constraints
+    valid_from_tick: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    expires_at_tick: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    # Processing state
+    status: Mapped[ActionCommandStatus] = mapped_column(
+        SQLEnum(ActionCommandStatus, native_enum=False, length=20),
+        nullable=False,
+        default=ActionCommandStatus.PENDING,
+        index=True
+    )
+
+    # Timestamps
+    submitted_at: Mapped[datetime] = mapped_column(
+        DateTime,
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc)
+    )
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    processed_at_tick: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Validation results
+    validation_errors: Mapped[dict | None] = mapped_column(JSON, nullable=True)  # Structured error details
+
+    # Constraints
+    __table_args__ = (
+        # Prevent duplicate command submissions for same intent at same tick
+        UniqueConstraint('player_id', 'intent', 'valid_from_tick', name='uq_player_intent_tick'),
+        # Optimize queue processing queries
+        Index('ix_action_commands_queue_processing', 'status', 'valid_from_tick', 'expires_at_tick'),
+    )
