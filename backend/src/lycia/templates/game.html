@@ -27,6 +27,10 @@ document.addEventListener('alpine:init', () => {
         map: null,
         cities: [],
         worldTick: 0,
+        lastKnownTick: 0,
+        pollingInterval: null,
+        pollingEnabled: false,
+        cityMarkers: new Map(), // Track markers for updates
 
         async init() {
             // Initialize the map
@@ -34,6 +38,9 @@ document.addEventListener('alpine:init', () => {
 
             // Load initial data
             await this.loadWorldData();
+
+            // Initialize polling (S2-09)
+            await this.initPolling();
         },
 
         initMap() {
@@ -65,6 +72,7 @@ document.addEventListener('alpine:init', () => {
 
                 this.cities = data.cities;
                 this.worldTick = data.tick;
+                this.lastKnownTick = data.tick;
 
                 // Update global store for tick counter in header
                 Alpine.store('game').tick = data.tick;
@@ -126,6 +134,113 @@ document.addEventListener('alpine:init', () => {
                 }).setContent(city.name);
 
                 marker.bindTooltip(label);
+
+                // Track marker for updates (S2-09)
+                this.cityMarkers.set(city.id, { marker, city });
+            });
+        },
+
+        // S2-09: Initialize polling for world updates
+        async initPolling() {
+            try {
+                const response = await fetch('/api/client/config');
+                const config = await response.json();
+
+                this.pollingEnabled = config.enable_polling;
+
+                if (this.pollingEnabled) {
+                    const intervalMs = config.polling_interval_ms || 3000;
+                    console.log(`[S2-09] Polling enabled. Interval: ${intervalMs}ms`);
+
+                    // Start polling
+                    this.pollingInterval = setInterval(() => {
+                        this.pollForUpdates();
+                    }, intervalMs);
+                } else {
+                    console.log('[S2-09] Polling disabled by config');
+                }
+            } catch (error) {
+                console.error('[S2-09] Failed to initialize polling:', error);
+            }
+        },
+
+        // S2-09: Poll for world updates since last known tick
+        async pollForUpdates() {
+            try {
+                // Request diff since last known tick
+                const response = await fetch(`/api/world/diff?sinceTick=${this.lastKnownTick}`);
+
+                if (!response.ok) {
+                    console.error('[S2-09] Failed to fetch diff:', response.statusText);
+                    return;
+                }
+
+                const diff = await response.json();
+
+                // Check if there are any updates
+                if (diff.current_tick === this.lastKnownTick) {
+                    // No updates
+                    return;
+                }
+
+                console.log(`[S2-09] Received updates: tick ${this.lastKnownTick} -> ${diff.current_tick}`);
+                console.log(`[S2-09] Changes in ${diff.cities.length} cities, ${diff.total_events} events`);
+
+                // Apply updates to city states
+                this.applyDiffUpdates(diff);
+
+                // Update tick tracker
+                this.worldTick = diff.current_tick;
+                this.lastKnownTick = diff.current_tick;
+                Alpine.store('game').tick = diff.current_tick;
+
+            } catch (error) {
+                console.error('[S2-09] Error polling for updates:', error);
+            }
+        },
+
+        // S2-09: Apply diff updates to city markers
+        applyDiffUpdates(diff) {
+            diff.cities.forEach(cityDiff => {
+                const cityData = this.cityMarkers.get(cityDiff.city_id);
+
+                if (!cityData) {
+                    console.warn(`[S2-09] Unknown city ID: ${cityDiff.city_id}`);
+                    return;
+                }
+
+                const { marker, city } = cityData;
+
+                // Apply metric changes
+                cityDiff.metric_changes.forEach(change => {
+                    if (change.metric === 'prosperity') {
+                        city.prosperity = change.new_value;
+                        console.log(`[S2-09] ${city.name} prosperity: ${change.old_value} -> ${change.new_value} (${change.delta > 0 ? '+' : ''}${change.delta})`);
+                    } else if (change.metric === 'unrest') {
+                        city.unrest = change.new_value;
+                        console.log(`[S2-09] ${city.name} unrest: ${change.old_value} -> ${change.new_value} (${change.delta > 0 ? '+' : ''}${change.delta})`);
+                    }
+                });
+
+                // Update marker color based on new values
+                marker.setStyle({
+                    fillColor: this.getCityColor(city.prosperity, city.unrest)
+                });
+
+                // Update popup content
+                marker.setPopupContent(`
+                    <div class="city-popup">
+                        <h4>${city.name}</h4>
+                        <p><strong>Region:</strong> ${city.region}</p>
+                        <p><strong>Prosperity:</strong> ${city.prosperity}</p>
+                        <p><strong>Unrest:</strong> ${city.unrest}</p>
+                    </div>
+                `);
+
+                // Log notable events
+                if (cityDiff.events.length > 0) {
+                    console.log(`[S2-09] ${city.name} events:`, cityDiff.events);
+                }
             });
         },
 

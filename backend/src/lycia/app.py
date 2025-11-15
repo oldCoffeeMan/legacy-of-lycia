@@ -26,6 +26,7 @@ from .world_diff import (
     WorldDiffResponse,
     RecapResponse
 )
+from .config_loader import get_gameplay_config
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -317,6 +318,55 @@ def recap(sinceTick: int, db: Session = Depends(get_db)):
         raise HTTPException(
             status_code=500,
             detail=f"Unexpected error: {str(e)}"
+        )
+
+
+@app.get("/api/client/config")
+def client_config(db: Session = Depends(get_db)):
+    """
+    Get client-side configuration settings.
+
+    Returns configuration values that the client needs to operate correctly,
+    such as polling intervals and feature flags.
+
+    **Returns**:
+    - `polling_interval_ms`: How often to poll for world updates (milliseconds)
+    - `enable_polling`: Whether polling is enabled
+    - `current_tick`: Current world tick (for initial sync)
+
+    **Example**: `GET /api/client/config`
+
+    **Usage**:
+    ```javascript
+    const config = await fetch('/api/client/config').then(r => r.json());
+    setInterval(() => pollForUpdates(), config.polling_interval_ms);
+    ```
+
+    **Note**: This endpoint does not require authentication to allow
+    public access to game configuration.
+    """
+    try:
+        # Get gameplay config with fallback to defaults
+        try:
+            config = get_gameplay_config()
+            polling_config = config.get("client_updates", {})
+        except RuntimeError:
+            # Config not loaded yet (e.g., during testing), use defaults
+            polling_config = {}
+
+        # Get current world tick from injected database session
+        world_state = db.get(WorldState, 1)
+        current_tick = world_state.tick if world_state else 0
+
+        return {
+            "polling_interval_ms": polling_config.get("polling_interval_ms", 3000),
+            "enable_polling": polling_config.get("enable_polling", True),
+            "current_tick": current_tick
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error retrieving client config: {str(e)}"
         )
 
 

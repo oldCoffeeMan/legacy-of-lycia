@@ -37,5 +37,11 @@
   "tick_system": {
     "max_duration_warning_ms": 1000,
     "description": "Tick performance monitoring"
+  },
+
+  "client_updates": {
+    "polling_interval_ms": 3000,
+    "enable_polling": true,
+    "description": "Client update delivery configuration (S2-09). polling_interval_ms controls how often clients poll for world changes."
   }
 }
