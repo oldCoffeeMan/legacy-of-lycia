@@ -13,6 +13,11 @@ venv/
 **/venv/
 dist/
 build/
+*.egg-info/
+**/*.egg-info/
+.coverage
+**/.coverage
+htmlcov/
 
 # node
 # node_modules/
@@ -20,3 +25,12 @@ build/
 # docker
 volumes/
 .vscode/
+
+# testing
+cookies*.txt
+**/cookies*.txt
+
+# IDE/tools
+.claude/
+temp_howto.txt
+**/temp_howto.txt

@@ -3,7 +3,6 @@ Tests for authentication functionality.
 
 Tests registration, login, logout, and session management.
 """
-import pytest
 from datetime import datetime, timezone
 from lycia.models import Player
 from lycia.auth import hash_password, verify_password, authenticate_player

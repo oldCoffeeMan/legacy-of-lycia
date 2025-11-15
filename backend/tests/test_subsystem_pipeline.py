@@ -10,7 +10,6 @@ import pytest
 from random import Random
 from sqlalchemy.orm import Session
 from src.lycia.subsystems import (
-    Subsystem,
     SubsystemPhase,
     SubsystemRegistry,
     TickContext,

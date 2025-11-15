@@ -1,7 +1,6 @@
 """
 Tests for health check endpoint.
 """
-import pytest
 from fastapi.testclient import TestClient
 
 

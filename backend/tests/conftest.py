@@ -10,7 +10,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 from lycia.db import Base, get_db
 from lycia.app import app
-from lycia.models import WorldState, City, Player
+from lycia.models import WorldState, City
 
 # Set testing environment variable to skip database startup checks
 os.environ["TESTING"] = "1"

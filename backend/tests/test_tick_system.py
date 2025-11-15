@@ -7,14 +7,11 @@ Test scenarios:
 3. Tick latency monitoring - metrics reflect performance
 """
 import pytest
-import asyncio
 import time
 from datetime import datetime, timezone
-from unittest.mock import patch, MagicMock
-from sqlalchemy import text
+from unittest.mock import patch
 from src.lycia.tick_executor import (
     TickExecutor,
-    TICK_LOCK_KEY,
     get_tick_health,
 )
 from src.lycia.models import WorldState, TickLog, TickStatus

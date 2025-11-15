@@ -76,7 +76,7 @@ class AuthTester:
         )
 
         if response.status_code == 302:
-            self.log(f"Registration successful (redirect to game)")
+            self.log("Registration successful (redirect to game)")
             self.log(f"Redirect location: {response.headers.get('location')}")
 
             # Check if session cookie is set
@@ -108,7 +108,7 @@ class AuthTester:
                 row = result.fetchone()
 
                 if row:
-                    self.log(f"Player record found in database")
+                    self.log("Player record found in database")
                     self.log(f"  ID: {row[0]}")
                     self.log(f"  Username: {row[1]}")
                     self.log(f"  Email: {row[2]}")
