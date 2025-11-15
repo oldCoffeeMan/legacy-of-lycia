@@ -10,11 +10,13 @@ AI-driven multiplayer real-time strategy game set in ancient Lycia. Players subm
 - **Real-Time Tick System**: Authoritative server-side tick loop with deterministic execution
 - **Action Command Queue**: Submit actions with temporal constraints for predictable outcomes
 - **Event Sourcing**: Complete audit trail of all game mutations with snapshot-based state reconstruction
-- **Interactive Map**: Leaflet-based map showing ancient Lycian cities
+- **World Diff API**: Efficient incremental state updates for clients
+- **Interactive Map**: Leaflet-based map showing ancient Lycian cities with real-time polling updates
 - **Player Authentication**: Secure registration and login with bcrypt
 - **Subsystem Pipeline**: Modular game logic organized by execution phase (INTENTS → ECONOMY → POLITICS → WEATHER → CLEANUP)
+- **Configuration System**: JSON-based tunable gameplay parameters
 - **AI Narration**: Historical context and event narration (coming soon)
-- **RESTful API**: FastAPI backend with comprehensive test coverage (121 tests)
+- **RESTful API**: FastAPI backend with comprehensive test coverage (216+ tests)
 
 ## Tech Stack
 
@@ -80,25 +82,37 @@ For detailed setup instructions, see [docs/HOWTO-local-dev.md](docs/HOWTO-local-
 
 ## Project Status
 
-**Current Sprint: Sprint 2**
+**Current Sprint: Sprint 2 ✅ COMPLETE**
 
-✅ **Sprint 1 (v0.1-sprint1)** - Completed
+### ✅ Sprint 1 - Foundation & Map (Complete)
 - Basic game map and city display
 - World state management
 - Initial database schema
+- Player authentication system
 - Design documentation
 
-✅ **Sprint 2** - Core Systems Complete
-- ✅ Player authentication (registration, login, logout)
-- ✅ Authoritative tick loop system (S2-01)
-- ✅ Subsystem pipeline with dependency resolution (S2-02)
-- ✅ Action command queue with temporal constraints (S2-03)
-- ✅ Event sourcing and snapshot system (S2-04)
-- ✅ Comprehensive test suite (121 tests passing)
-- ✅ CI/CD pipeline with GitHub Actions
-- ✅ Migration documentation and strategy
-- ⏳ Economy, politics, and weather subsystems (S2-05 to S2-15)
-- ⏳ AI Game Master integration (planned)
+### ✅ Sprint 2 - Core Engine Systems (Complete)
+**Event Sourcing Architecture - All 10 Items Delivered**
+
+- ✅ **S2-01:** Authoritative tick loop system
+- ✅ **S2-02:** Subsystem pipeline with dependency resolution
+- ✅ **S2-03:** Action command queue with temporal constraints
+- ✅ **S2-04:** Event sourcing and snapshot system
+- ✅ **S2-05:** Schema versioning discipline (v1)
+- ✅ **S2-06:** Deterministic RNG enforcement
+- ✅ **S2-07:** Simple rules/config wiring
+- ✅ **S2-08:** World Diff API & Basic Recap Contract
+- ✅ **S2-09:** World Update Delivery (Polling)
+- ✅ **S2-10:** Short Developer Docs (Subsystems & Actions)
+
+**Comprehensive test suite: 216+ tests passing**
+- CI/CD pipeline with GitHub Actions
+- Migration documentation and strategy
+- Developer documentation for extending the system
+
+### ⏳ Upcoming Sprints
+- **Sprint 3:** Economy, politics, and weather subsystems
+- **Sprint 4:** AI Game Master integration (AIND)
 
 ## Development
 
@@ -109,15 +123,17 @@ cd backend
 TESTING=1 PYTHONPATH=src pytest tests/ -v --cov=lycia
 ```
 
-**Test Coverage (121 tests):**
-- 30 action command tests (queue, handlers, validation, temporal constraints)
-- 25 authentication tests (password hashing, login, registration, profile)
-- 17 event sourcing tests (persistence, snapshots, replay, state reconstruction)
-- 21 subsystem pipeline tests (registration, ordering, dependencies, execution)
-- 18 tick system tests (singleton guarantee, determinism, crash recovery, latency)
-- 6 world snapshot API tests
-- 2 health endpoint tests
-- 2 miscellaneous integration tests
+**Test Coverage (216+ tests):**
+- 30+ action command tests (queue, handlers, validation, temporal constraints)
+- 25+ authentication tests (password hashing, login, registration, profile)
+- 17+ event sourcing tests (persistence, snapshots, replay, state reconstruction)
+- 21+ subsystem pipeline tests (registration, ordering, dependencies, execution)
+- 18+ tick system tests (singleton guarantee, determinism, crash recovery, latency)
+- 22+ schema versioning tests (validation, JSON schema compliance)
+- 27+ world diff API tests (incremental updates, recap generation)
+- 15+ polling mechanism tests (client updates, state synchronization)
+- 6+ world snapshot API tests
+- 2+ health endpoint tests
 
 ### Code Quality
 
@@ -167,6 +183,16 @@ See [backend/MIGRATION_NOTES.md](backend/MIGRATION_NOTES.md) for migration strat
 - [S2-02 - Subsystem Pipeline Implementation](docs/S2-02_Subsystem_Pipeline_Implementation.md)
 - [S2-03 - Action Command Queue Implementation](docs/S2-03_Action_Command_Queue_Implementation.md)
 - [S2-04 - Event Sourcing & Snapshots Implementation](docs/S2-04_Event_Sourcing_and_Snapshots_Implementation.md)
+- [S2-05 - Schema Versioning Implementation](docs/s2-05-implementation-summary.md)
+- [S2-06 - Deterministic RNG Implementation](docs/S2-06_Deterministic_RNG_Implementation.md)
+- [S2-07 - Configuration System Implementation](docs/S2-07_Config_Wiring_Implementation.md)
+- [S2-08 - World Diff API Implementation](docs/S2-08_World_Diff_API_Implementation.md)
+- [S2-09 - World Update Delivery Implementation](docs/S2-09_World_Update_Delivery_Implementation.md)
+
+### Developer Guides
+
+- [How to Add a Subsystem](docs/howto_add_subsystem.md)
+- [How to Add an Action Handler](docs/howto_add_action.md)
 
 ## API Endpoints
 
@@ -184,6 +210,9 @@ See [backend/MIGRATION_NOTES.md](backend/MIGRATION_NOTES.md) for migration strat
 
 ### Game API
 - **GET /api/world** - World state snapshot with all cities
+- **GET /api/world/diff?sinceTick=\<n\>** - Incremental world state changes since tick N
+- **GET /api/recap?sinceTick=\<n\>** - Structured event recap with highlights and summaries
+- **GET /api/client/config** - Client configuration (polling interval, current tick)
 - **POST /api/actions/enqueue** - Submit action command with temporal constraints
 - **GET /api/actions/my-commands** - Retrieve player's command history
 - **GET /health** - Health check with tick metrics
@@ -216,13 +245,14 @@ Full API documentation: http://localhost:8000/docs
 ┌─────────────┐
 │   Browser   │
 └──────┬──────┘
-       │ HTTP (REST API)
+       │ HTTP (REST API + Polling)
 ┌──────▼──────────────────────────┐
 │      FastAPI Backend             │
 │  ┌────────────────────────────┐ │
 │  │  Authentication System     │ │
 │  │  Action Command Queue      │ │
 │  │  API Routes                │ │
+│  │  World Diff API            │ │
 │  └────────────────────────────┘ │
 │                                  │
 │  ┌────────────────────────────┐ │
@@ -242,6 +272,7 @@ Full API documentation: http://localhost:8000/docs
 │  │  • Event Persistence       │ │
 │  │  • Snapshot Creation       │ │
 │  │  • State Replay            │ │
+│  │  • Diff Calculation        │ │
 │  └────────────────────────────┘ │
 └──┬──────────────┬────────────────┘
    │              │
@@ -263,6 +294,9 @@ Full API documentation: http://localhost:8000/docs
 3. **Action Command Queue**: Players submit commands with temporal constraints (valid_from_tick, expires_at_tick)
 4. **Event Sourcing**: All mutations recorded as append-only events with periodic snapshots
 5. **Deterministic RNG**: Seeded randomness per subsystem ensures reproducible outcomes
+6. **Configuration System**: JSON-based tunable parameters for game designers
+7. **Diff API**: Efficient incremental state updates using event log queries
+8. **Polling System**: Client synchronization via configurable HTTP polling
 
 ## License
 
