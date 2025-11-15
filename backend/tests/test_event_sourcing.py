@@ -97,11 +97,11 @@ class TestEventPersistence:
         assert len(events) == 2
 
         assert events[0].tick == 10
-        assert events[0].event_type == "test.event"
+        assert events[0].type == "test.event"
         assert events[0].actor == "test_subsystem"
         assert events[0].payload == {"data": "value1"}
 
-        assert events[1].event_type == "test.event2"
+        assert events[1].type == "test.event2"
         assert events[1].payload == {"data": "value2"}
 
     def test_event_sourcing_disabled(
@@ -307,7 +307,7 @@ class TestEventReplay:
         # Create events
         event1 = Event(
             tick=1,
-            event_type="city.prosperity_changed",
+            type="city.prosperity_changed",
             schema_version=1,
             actor="test",
             payload={
@@ -320,7 +320,7 @@ class TestEventReplay:
 
         event2 = Event(
             tick=2,
-            event_type="city.prosperity_changed",
+            type="city.prosperity_changed",
             schema_version=1,
             actor="test",
             payload={
@@ -381,7 +381,7 @@ class TestEventReplay:
         # Create event after snapshot
         event = Event(
             tick=15,
-            event_type="city.prosperity_changed",
+            type="city.prosperity_changed",
             schema_version=1,
             actor="test",
             payload={
@@ -417,7 +417,7 @@ class TestEventReplay:
         # Create valid event
         event1 = Event(
             tick=1,
-            event_type="city.prosperity_changed",
+            type="city.prosperity_changed",
             schema_version=1,
             actor="test",
             payload={
@@ -431,7 +431,7 @@ class TestEventReplay:
         # Create corrupt event (malformed payload)
         event2 = Event(
             tick=2,
-            event_type="city.prosperity_changed",
+            type="city.prosperity_changed",
             schema_version=1,
             actor="test",
             payload={"corrupted": "data"},  # Missing required fields
@@ -441,7 +441,7 @@ class TestEventReplay:
         # Create another valid event
         event3 = Event(
             tick=3,
-            event_type="city.prosperity_changed",
+            type="city.prosperity_changed",
             schema_version=1,
             actor="test",
             payload={
@@ -476,7 +476,7 @@ class TestEventReplay:
         # Create event with unregistered type
         event = Event(
             tick=1,
-            event_type="unknown.event_type",
+            type="unknown.type",
             schema_version=1,
             actor="test",
             payload={"data": "value"},
@@ -511,7 +511,7 @@ class TestStateReconstruction:
         # Apply changes and record events
         event1 = Event(
             tick=1,
-            event_type="city.prosperity_changed",
+            type="city.prosperity_changed",
             schema_version=1,
             actor="economy",
             payload={
@@ -524,7 +524,7 @@ class TestStateReconstruction:
 
         event2 = Event(
             tick=2,
-            event_type="city.prosperity_boosted",
+            type="city.prosperity_boosted",
             schema_version=1,
             actor="player:1",
             payload={
@@ -574,7 +574,7 @@ class TestStateReconstruction:
 
             event = Event(
                 tick=tick,
-                event_type="city.prosperity_changed",
+                type="city.prosperity_changed",
                 schema_version=1,
                 actor="subsystem",
                 payload={

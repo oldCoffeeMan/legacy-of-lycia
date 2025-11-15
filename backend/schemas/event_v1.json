@@ -1,0 +1,83 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://legacy-of-lycia.com/schemas/event/v1",
+  "title": "Event",
+  "description": "Schema for Event records (v1). Events capture all state mutations in the game world.",
+  "type": "object",
+  "required": ["type", "schema_version", "tick", "actor", "payload"],
+  "properties": {
+    "type": {
+      "type": "string",
+      "description": "Event type identifier (e.g., 'city.prosperity_boosted', 'unit.moved')",
+      "pattern": "^[a-z_]+\\.[a-z_]+$",
+      "minLength": 3,
+      "maxLength": 100,
+      "examples": [
+        "city.prosperity_boosted",
+        "action.processed",
+        "tick.completed"
+      ]
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "Schema version for this event (must be 1)",
+      "const": 1
+    },
+    "tick": {
+      "type": "integer",
+      "description": "Game tick when this event occurred",
+      "minimum": 0
+    },
+    "actor": {
+      "type": "string",
+      "description": "Actor that caused this event (subsystem name or 'player:{id}')",
+      "minLength": 1,
+      "maxLength": 100,
+      "examples": [
+        "action_commands",
+        "player:42",
+        "system"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "description": "Event-specific data payload",
+      "additionalProperties": true
+    },
+    "command_id": {
+      "type": ["integer", "null"],
+      "description": "Optional link to the ActionCommand that caused this event",
+      "minimum": 1
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "type": "city.prosperity_boosted",
+      "schema_version": 1,
+      "tick": 42,
+      "actor": "player:1",
+      "payload": {
+        "city_id": 1,
+        "city_name": "Rome",
+        "player_id": 1,
+        "amount": 10,
+        "old_prosperity": 50,
+        "new_prosperity": 60
+      },
+      "command_id": 123
+    },
+    {
+      "type": "tick.completed",
+      "schema_version": 1,
+      "tick": 42,
+      "actor": "system",
+      "payload": {
+        "duration_ms": 150,
+        "subsystems_executed": 5,
+        "events_emitted": 12
+      },
+      "command_id": null
+    }
+  ]
+}

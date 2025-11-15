@@ -86,7 +86,7 @@ class EventReplayer:
             except Exception as e:
                 error_count += 1
                 logger.warning(
-                    f"Error applying event {event.id} (type={event.event_type}): {e}"
+                    f"Error applying event {event.id} (type={event.type}): {e}"
                 )
                 # Continue replay despite errors (graceful degradation)
                 continue
@@ -120,22 +120,22 @@ class EventReplayer:
             True if applied, False if skipped
         """
         # Get reducer for event type
-        reducer = self.registry.get(event.event_type, event.schema_version)
+        reducer = self.registry.get(event.type, event.schema_version)
 
         if not reducer:
             # Try latest version
-            reducer = self.registry.get_latest(event.event_type)
+            reducer = self.registry.get_latest(event.type)
 
         if not reducer:
             # No reducer registered - skip event
-            logger.debug(f"No reducer for event type: {event.event_type}")
+            logger.debug(f"No reducer for event type: {event.type}")
             return False
 
         # Apply reducer
         event_data = {
             "id": event.id,
             "tick": event.tick,
-            "type": event.event_type,
+            "type": event.type,
             "schema_version": event.schema_version,
             "actor": event.actor,
             "payload": event.payload,

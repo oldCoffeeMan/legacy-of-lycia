@@ -145,7 +145,7 @@ class TestMultiSubsystemEventAggregation:
         events = db_session.query(Event).filter_by(tick=10).all()
         assert len(events) == 2
 
-        event_types = {e.event_type for e in events}
+        event_types = {e.type for e in events}
         assert "test.a" in event_types
         assert "test.b" in event_types
 

@@ -27,6 +27,45 @@ from datetime import datetime
 async def lifespan(app: FastAPI):
     # Skip database checks in test mode
     import os
+
+    # Register action handlers (S2-03) - Always register, even in test mode
+    from lycia.actions.handlers import TestActionHandler, ProsperityBoostHandler
+    from lycia.subsystems.action_command_subsystem import ActionCommandSubsystem
+    from lycia.tick_executor import get_subsystem_registry
+
+    action_registry = get_action_handler_registry()
+    # Register handlers only if not already registered (idempotent for testing)
+    if not action_registry.has_handler("test_action", 1):
+        action_registry.register(TestActionHandler())
+    if not action_registry.has_handler("prosperity_boost", 1):
+        action_registry.register(ProsperityBoostHandler())
+
+    # Register subsystems (idempotent for testing)
+    subsystem_registry = get_subsystem_registry()
+    if subsystem_registry.get("action_commands") is None:
+        subsystem_registry.register(ActionCommandSubsystem())
+
+    # Register event sourcing subsystems (S2-04)
+    from lycia.subsystems.event_persistence_subsystem import EventPersistenceSubsystem
+    from lycia.subsystems.snapshot_subsystem import SnapshotSubsystem
+    from lycia.event_sourcing.example_reducers import (
+        CityProsperityChangedReducer,
+        CityProsperityBoostedReducer,
+    )
+    from lycia.event_sourcing import get_event_reducer_registry
+
+    if subsystem_registry.get("event_persistence") is None:
+        subsystem_registry.register(EventPersistenceSubsystem())
+    if subsystem_registry.get("snapshot_creation") is None:
+        subsystem_registry.register(SnapshotSubsystem())
+
+    # Register event reducers (check if already registered to avoid duplicates)
+    reducer_registry = get_event_reducer_registry()
+    if reducer_registry.get("city.prosperity_changed", 1) is None:
+        reducer_registry.register(CityProsperityChangedReducer())
+    if reducer_registry.get("city.prosperity_boosted", 1) is None:
+        reducer_registry.register(CityProsperityBoostedReducer())
+
     if os.getenv("TESTING") != "1":
         # Check database connection and optionally auto-start Docker container
         try:
@@ -41,36 +80,6 @@ async def lifespan(app: FastAPI):
         except SQLAlchemyError as e:
             print(f"Error creating database tables: {e}")
             raise
-
-        # Register action handlers (S2-03)
-        from lycia.actions.handlers import TestActionHandler, ProsperityBoostHandler
-        from lycia.subsystems.action_command_subsystem import ActionCommandSubsystem
-        from lycia.tick_executor import get_subsystem_registry
-
-        action_registry = get_action_handler_registry()
-        action_registry.register(TestActionHandler())
-        action_registry.register(ProsperityBoostHandler())
-
-        # Register subsystems
-        subsystem_registry = get_subsystem_registry()
-        subsystem_registry.register(ActionCommandSubsystem())
-
-        # Register event sourcing subsystems (S2-04)
-        from lycia.subsystems.event_persistence_subsystem import EventPersistenceSubsystem
-        from lycia.subsystems.snapshot_subsystem import SnapshotSubsystem
-        from lycia.event_sourcing.example_reducers import (
-            CityProsperityChangedReducer,
-            CityProsperityBoostedReducer,
-        )
-        from lycia.event_sourcing import get_event_reducer_registry
-
-        subsystem_registry.register(EventPersistenceSubsystem())
-        subsystem_registry.register(SnapshotSubsystem())
-
-        # Register event reducers
-        reducer_registry = get_event_reducer_registry()
-        reducer_registry.register(CityProsperityChangedReducer())
-        reducer_registry.register(CityProsperityBoostedReducer())
 
         # Start the tick loop
         await start_tick_loop()
@@ -191,6 +200,7 @@ class EnqueueActionRequest(BaseModel):
     """Request model for enqueueing an action command."""
     intent: str = Field(..., description="Action intent (e.g., 'move_unit')")
     version: int = Field(default=1, description="Handler version")
+    schema_version: int = Field(default=1, description="Schema version (must be 1)")
     params: dict = Field(..., description="Action-specific parameters")
     valid_from_tick: int = Field(..., description="First tick when command can execute")
     expires_at_tick: int = Field(..., description="Last tick when command can execute")
@@ -200,6 +210,7 @@ class EnqueueActionRequest(BaseModel):
             "example": {
                 "intent": "move_unit",
                 "version": 1,
+                "schema_version": 1,
                 "params": {"unit_id": 1, "destination": {"x": 10, "y": 20}},
                 "valid_from_tick": 100,
                 "expires_at_tick": 105
@@ -239,15 +250,17 @@ def enqueue_action(
     **Request Body**:
     - `intent`: The action type (e.g., "move_unit", "build_structure")
     - `version`: Handler version (default: 1)
+    - `schema_version`: Schema version (must be 1)
     - `params`: Action-specific parameters (varies by intent)
     - `valid_from_tick`: First tick when this command can execute
     - `expires_at_tick`: Last tick when this command can execute
 
     **Validation**:
-    1. **Temporal validation**: Ensures valid_from_tick <= expires_at_tick
-    2. **Handler validation**: Checks that a handler exists for intent@version
-    3. **Syntactic validation**: Validates params schema via handler
-    4. **Duplicate prevention**: Rejects duplicate (player, intent, valid_from_tick)
+    1. **Schema version validation**: Ensures schema_version == 1 (only v1 supported)
+    2. **Temporal validation**: Ensures valid_from_tick <= expires_at_tick
+    3. **Handler validation**: Checks that a handler exists for intent@version
+    4. **Syntactic validation**: Validates params schema via handler
+    5. **Duplicate prevention**: Rejects duplicate (player, intent, valid_from_tick)
 
     **Returns**:
     - `command_id`: Unique identifier for tracking
@@ -267,6 +280,13 @@ def enqueue_action(
         raise HTTPException(
             status_code=401,
             detail="Authentication required"
+        )
+
+    # Schema version validation (S2-05: Only v1 supported)
+    if action.schema_version != 1:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported schema_version: {action.schema_version}. Only schema_version=1 is currently supported."
         )
 
     # Temporal validation
@@ -302,6 +322,7 @@ def enqueue_action(
             player_id=player.id,
             intent=action.intent,
             version=action.version,
+            schema_version=action.schema_version,
             params=action.params,
             valid_from_tick=action.valid_from_tick,
             expires_at_tick=action.expires_at_tick,

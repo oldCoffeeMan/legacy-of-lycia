@@ -137,6 +137,7 @@ class ActionCommand(Base):
     # Command specification
     intent: Mapped[str] = mapped_column(String(100), nullable=False)  # e.g., "move_unit", "build_structure"
     version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # Handler version
+    schema_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # Schema version (v1 only for now)
     params: Mapped[dict] = mapped_column(JSON, nullable=False)  # Action-specific parameters
 
     # Temporal constraints
@@ -202,9 +203,9 @@ class Event(Base):
     tick: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 
     # Event type (e.g., "city.prosperity_changed", "unit.moved")
-    event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
 
-    # Schema version for forward compatibility
+    # Schema version for forward compatibility (v1 only for now)
     schema_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
 
     # Actor that caused the event (subsystem name or "player:{id}")
@@ -229,7 +230,7 @@ class Event(Base):
         # Optimize replay queries (snapshot tick to current)
         Index('ix_events_tick_created', 'tick', 'created_at'),
         # Optimize event type queries
-        Index('ix_events_type_tick', 'event_type', 'tick'),
+        Index('ix_events_type_tick', 'type', 'tick'),
     )
 
 

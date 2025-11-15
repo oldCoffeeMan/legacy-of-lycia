@@ -10,21 +10,18 @@ This module tests the complete action command system including:
 """
 
 import pytest
-from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from fastapi.testclient import TestClient
 
 from lycia.models import ActionCommand, ActionCommandStatus, WorldState, Player
 from lycia.actions import (
-    ActionHandler,
-    ValidationResult,
     ActionHandlerRegistry,
     get_action_handler_registry,
 )
 from lycia.actions.handlers import TestActionHandler, ProsperityBoostHandler
 from lycia.subsystems.action_command_subsystem import ActionCommandSubsystem
 from lycia.subsystems.context import TickContextImpl
-from lycia.auth import hash_password, create_session
+from lycia.auth import hash_password
 import random
 
 
@@ -284,7 +281,6 @@ class TestActionCommandAPI:
     ):
         """Test enqueueing a valid action command (AC: Commands return structured validation results)."""
         # Temporarily inject action registry (in real app, it's registered at startup)
-        from lycia import app as lycia_app
         original_registry = get_action_handler_registry()
 
         # Register handlers
@@ -353,9 +349,10 @@ class TestActionCommandAPI:
         sample_world_state
     ):
         """Test that syntactic validation works (AC: Rejected commands return structured validation errors)."""
-        # Register handler
+        # Register handler (if not already registered)
         registry = get_action_handler_registry()
-        registry.register(TestActionHandler())
+        if not registry.has_handler("test_action", 1):
+            registry.register(TestActionHandler())
 
         response = authenticated_client.post(
             "/api/actions/enqueue",

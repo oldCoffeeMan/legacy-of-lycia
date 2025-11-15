@@ -66,7 +66,7 @@ class EventPersistenceSubsystem:
         for event_data in events_to_persist:
             event = Event(
                 tick=ctx.tick,
-                event_type=event_data.get("type", "unknown"),
+                type=event_data.get("type", "unknown"),
                 schema_version=event_data.get("schema_version", 1),
                 actor=event_data.get("subsystem", event_data.get("actor", "system")),
                 payload=event_data.get("data", {}),

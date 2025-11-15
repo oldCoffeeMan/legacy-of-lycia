@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://legacy-of-lycia.com/schemas/action_command/v1",
+  "title": "ActionCommand",
+  "description": "Schema for ActionCommand records (v1). Commands represent player and AI intents to be processed during tick execution.",
+  "type": "object",
+  "required": ["intent", "schema_version", "version", "params", "valid_from_tick", "expires_at_tick"],
+  "properties": {
+    "intent": {
+      "type": "string",
+      "description": "Action intent identifier (e.g., 'move_unit', 'prosperity_boost')",
+      "pattern": "^[a-z_]+$",
+      "minLength": 1,
+      "maxLength": 100,
+      "examples": [
+        "move_unit",
+        "prosperity_boost",
+        "test_action"
+      ]
+    },
+    "schema_version": {
+      "type": "integer",
+      "description": "Schema version for this command (must be 1)",
+      "const": 1
+    },
+    "version": {
+      "type": "integer",
+      "description": "Handler version for processing this command",
+      "minimum": 1,
+      "default": 1
+    },
+    "params": {
+      "type": "object",
+      "description": "Action-specific parameters (validated by handler)",
+      "additionalProperties": true
+    },
+    "valid_from_tick": {
+      "type": "integer",
+      "description": "First tick when this command can be executed",
+      "minimum": 0
+    },
+    "expires_at_tick": {
+      "type": "integer",
+      "description": "Last tick when this command can be executed (must be >= valid_from_tick)",
+      "minimum": 0
+    }
+  },
+  "additionalProperties": false,
+  "examples": [
+    {
+      "intent": "prosperity_boost",
+      "schema_version": 1,
+      "version": 1,
+      "params": {
+        "city_id": 1,
+        "amount": 10
+      },
+      "valid_from_tick": 100,
+      "expires_at_tick": 105
+    },
+    {
+      "intent": "test_action",
+      "schema_version": 1,
+      "version": 1,
+      "params": {
+        "message": "Hello World"
+      },
+      "valid_from_tick": 50,
+      "expires_at_tick": 60
+    },
+    {
+      "intent": "move_unit",
+      "schema_version": 1,
+      "version": 1,
+      "params": {
+        "unit_id": 42,
+        "destination": {
+          "x": 10,
+          "y": 20
+        }
+      },
+      "valid_from_tick": 200,
+      "expires_at_tick": 210
+    }
+  ]
+}
