@@ -20,6 +20,12 @@ from .auth import (
 )
 from .tick_executor import start_tick_loop, stop_tick_loop, get_tick_health
 from .actions import get_action_handler_registry
+from .world_diff import (
+    get_world_diff,
+    get_recap,
+    WorldDiffResponse,
+    RecapResponse
+)
 from pydantic import BaseModel, Field
 from datetime import datetime
 
@@ -187,6 +193,119 @@ def world_snapshot(db: Session = Depends(get_db)):
                 } for c in cities
             ]
         }
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
+        )
+
+
+@app.get("/api/world/diff", response_model=WorldDiffResponse)
+def world_diff(sinceTick: int, db: Session = Depends(get_db)):
+    """
+    Get a diff of world changes since a given tick.
+
+    This endpoint returns high-level changes that occurred since the specified tick,
+    including per-city metric changes and notable events. Useful for "what changed
+    while I was away" functionality.
+
+    **Query Parameters**:
+    - `sinceTick`: The tick to calculate diff from (must be >= 0 and <= current tick)
+
+    **Returns**:
+    - `current_tick`: Current world tick
+    - `since_tick`: The tick diff was calculated from
+    - `tick_range`: Number of ticks covered
+    - `cities`: List of city diffs with metric changes and events
+    - `total_events`: Total number of events in this period
+
+    **City Diff Contains**:
+    - `city_id`, `city_name`: City identification
+    - `metric_changes`: Changes in prosperity, unrest, etc.
+    - `events`: Notable events that occurred in this city
+
+    **Error Responses**:
+    - `400 Bad Request`: Invalid sinceTick (negative or future)
+    - `404 Not Found`: World state not initialized
+    - `500 Internal Server Error`: Database or system error
+
+    **Example**: `GET /api/world/diff?sinceTick=100`
+    """
+    try:
+        diff_result = get_world_diff(db, sinceTick)
+        return diff_result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
+    except HTTPException:
+        raise
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Unexpected error: {str(e)}"
+        )
+
+
+@app.get("/api/recap", response_model=RecapResponse)
+def recap(sinceTick: int, db: Session = Depends(get_db)):
+    """
+    Get a structured recap of events since a given tick.
+
+    This endpoint returns structured data (NOT prose) that AIND can use to generate
+    narrative summaries. It identifies highlights, creates summary items, and suggests
+    follow-up actions based on events since the specified tick.
+
+    **Query Parameters**:
+    - `sinceTick`: The tick to calculate recap from (must be >= 0 and <= current tick)
+
+    **Returns**:
+    - `current_tick`: Current world tick
+    - `since_tick`: The tick recap was calculated from
+    - `highlights`: Important events or threshold crossings
+      - Each highlight has: type, city, tick, severity, description, data
+    - `summary_items`: Short bullet-like pieces suitable for narration
+      - Each item has: category, text, related_city_ids
+    - `suggested_followups`: Placeholder suggestions for actions
+      - Each suggestion has: action_type, target, reason, priority
+
+    **Highlight Types**:
+    - `prosperity_spike`: Significant prosperity increase
+    - `prosperity_drop`: Significant prosperity decrease
+    - `unrest_spike`: Unrest increased notably
+    - `unrest_calmed`: Unrest decreased
+    - `prosperity_boosted`: Player action boosted prosperity
+
+    **Severity Levels**: `low`, `medium`, `high`
+
+    **Error Responses**:
+    - `400 Bad Request`: Invalid sinceTick (negative or future)
+    - `404 Not Found`: World state not initialized
+    - `500 Internal Server Error`: Database or system error
+
+    **Example**: `GET /api/recap?sinceTick=100`
+    """
+    try:
+        recap_result = get_recap(db, sinceTick)
+        return recap_result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=str(e)
+        )
     except HTTPException:
         raise
     except SQLAlchemyError as e:
