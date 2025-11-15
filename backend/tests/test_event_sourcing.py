@@ -115,12 +115,19 @@ class TestEventPersistence:
         # Disable event sourcing
         monkeypatch.setattr(settings, "enable_event_sourcing", False)
 
+        # Config with event persistence disabled (S2-07)
+        config_disabled = {
+            "events": {
+                "enable_persistence": False
+            }
+        }
+
         ctx = TickContextImpl(
             tick=10,
             db=db_session,
             rng=random.Random(42),
             subsystem_name="test_subsystem",
-            config={}
+            config=config_disabled
         )
 
         ctx.emit("test.event", {"data": "value"})
@@ -244,17 +251,16 @@ class TestSnapshotCreation:
         monkeypatch
     ):
         """Test changing snapshot frequency (AC: Snapshot frequency change does not affect correctness)."""
-        # Create snapshot at tick 60 with frequency 60
-        monkeypatch.setattr(settings, "snapshot_frequency", 60)
-
-        ctx = TickContextImpl(tick=60, db=db_session, rng=random.Random(42), subsystem_name="snapshot_creation", config={})
+        # Create snapshot at tick 60 with frequency 60 (S2-07: use config)
+        config_60 = {"snapshots": {"frequency": 60}}
+        ctx = TickContextImpl(tick=60, db=db_session, rng=random.Random(42), subsystem_name="snapshot_creation", config=config_60)
         snapshot_subsystem.apply(ctx)
 
-        # Change frequency to 30
-        monkeypatch.setattr(settings, "snapshot_frequency", 30)
+        # Change frequency to 30 (S2-07: use config)
+        config_30 = {"snapshots": {"frequency": 30}}
 
         # Should create snapshot at tick 90 (next multiple of 30)
-        ctx = TickContextImpl(tick=90, db=db_session, rng=random.Random(42), subsystem_name="snapshot_creation", config={})
+        ctx = TickContextImpl(tick=90, db=db_session, rng=random.Random(42), subsystem_name="snapshot_creation", config=config_30)
         snapshot_subsystem.apply(ctx)
 
         # Verify both snapshots exist

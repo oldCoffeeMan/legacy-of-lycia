@@ -7,7 +7,6 @@ to the database. This is part of the event sourcing implementation (S2-04).
 
 from datetime import datetime, timezone
 from lycia.models import Event
-from lycia.settings import settings
 from .phase import SubsystemPhase
 from .protocol import TickContext
 
@@ -50,8 +49,9 @@ class EventPersistenceSubsystem:
         Args:
             ctx: Tick context (events already collected)
         """
-        # Check if event sourcing is enabled
-        if not settings.enable_event_sourcing:
+        # Check if event sourcing is enabled (S2-07)
+        enable_persistence = ctx.get_config("events.enable_persistence", default=True)
+        if not enable_persistence:
             return
 
         # Get all events collected during this tick

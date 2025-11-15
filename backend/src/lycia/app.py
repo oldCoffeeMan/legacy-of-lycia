@@ -28,6 +28,15 @@ async def lifespan(app: FastAPI):
     # Skip database checks in test mode
     import os
 
+    # Initialize gameplay config (S2-07) - Load before subsystems
+    from lycia.config_loader import init_gameplay_config
+    try:
+        init_gameplay_config()
+        print("[Startup] Gameplay config loaded successfully")
+    except Exception as e:
+        print(f"[Warning] Failed to load gameplay config: {e}")
+        print("[Warning] Using default configuration values")
+
     # Register action handlers (S2-03) - Always register, even in test mode
     from lycia.actions.handlers import TestActionHandler, ProsperityBoostHandler
     from lycia.subsystems.action_command_subsystem import ActionCommandSubsystem

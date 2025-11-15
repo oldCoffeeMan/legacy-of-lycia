@@ -1,0 +1,41 @@
+{
+  "$schema": "gameplay_config_schema_v1",
+  "description": "Centralized gameplay configuration for tunable parameters. Change these values and restart the server to adjust game behavior.",
+  "version": "1.0.0",
+
+  "snapshots": {
+    "frequency": 60,
+    "description": "Create state snapshot every N ticks (for faster state reconstruction)"
+  },
+
+  "events": {
+    "enable_persistence": true,
+    "batch_size": 1000,
+    "description": "Event sourcing configuration"
+  },
+
+  "action_commands": {
+    "max_per_tick": 100,
+    "max_queue_size": 1000,
+    "default_expiry_ticks": 10,
+    "description": "Action command processing limits"
+  },
+
+  "economy": {
+    "base_production_rate": 1.0,
+    "trade_multiplier": 1.5,
+    "prosperity_decay_rate": 0.01,
+    "description": "Economic subsystem parameters"
+  },
+
+  "politics": {
+    "unrest_threshold": 75,
+    "rebellion_chance_per_tick": 0.05,
+    "description": "Political system thresholds"
+  },
+
+  "tick_system": {
+    "max_duration_warning_ms": 1000,
+    "description": "Tick performance monitoring"
+  }
+}

@@ -70,6 +70,9 @@ class ActionCommandSubsystem:
         db = ctx.db
         registry = get_action_handler_registry()
 
+        # Get max commands per tick from config (S2-07)
+        max_commands_per_tick = ctx.get_config("action_commands.max_per_tick", default=100)
+
         # Query eligible commands
         # Use pessimistic locking (SELECT FOR UPDATE) to prevent race conditions
         # if multiple workers somehow acquire the tick lock
@@ -82,6 +85,7 @@ class ActionCommandSubsystem:
                 )
             )
             .with_for_update()  # Lock rows to prevent concurrent processing
+            .limit(max_commands_per_tick)  # Apply config limit
             .all()
         )
 

@@ -7,7 +7,6 @@ fast state reconstruction (S2-04).
 
 from datetime import datetime, timezone
 from lycia.models import WorldState, City, WorldSnapshot, CitySnapshot
-from lycia.settings import settings
 from .phase import SubsystemPhase
 from .protocol import TickContext
 
@@ -42,7 +41,7 @@ class SnapshotSubsystem:
         """
         Create snapshots if current tick is a snapshot tick.
 
-        Snapshots are created every K ticks (configurable).
+        Snapshots are created every K ticks (configurable via ctx.get_config).
         Both world state and all city states are snapshotted.
 
         Args:
@@ -50,8 +49,11 @@ class SnapshotSubsystem:
         """
         current_tick = ctx.tick
 
+        # Get snapshot frequency from config (S2-07)
+        snapshot_frequency = ctx.get_config("snapshots.frequency", default=60)
+
         # Check if this is a snapshot tick
-        if current_tick % settings.snapshot_frequency != 0:
+        if current_tick % snapshot_frequency != 0:
             return
 
         # Create world snapshot
@@ -66,7 +68,7 @@ class SnapshotSubsystem:
         # Emit event
         ctx.emit("snapshots.created", {
             "tick": current_tick,
-            "frequency": settings.snapshot_frequency
+            "frequency": snapshot_frequency
         })
 
     def _create_world_snapshot(self, ctx: TickContext) -> None:

@@ -4,9 +4,12 @@ Tick Context Implementation
 Concrete implementation of TickContext provided to subsystems.
 """
 import hashlib
+import logging
 from typing import Any
 from random import Random
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 
 class TickContextImpl:
@@ -118,6 +121,11 @@ class TickContextImpl:
             if isinstance(value, dict) and k in value:
                 value = value[k]
             else:
+                # Log warning when config key not found
+                logger.warning(
+                    f"[{self._subsystem_name}] Config key '{key}' not found, "
+                    f"using default: {default}"
+                )
                 return default
 
         return value

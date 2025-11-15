@@ -22,6 +22,7 @@ from .db import get_db_session
 from .models import WorldState, TickLog, TickStatus
 from .settings import settings
 from .subsystems import SubsystemRegistry, TickContextImpl
+from .config_loader import get_gameplay_config
 
 
 # PostgreSQL advisory lock key for tick execution
@@ -141,6 +142,14 @@ class TickExecutor:
         # All subsystems will append to this same list
         tick_events: list[dict[str, Any]] = []
 
+        # Load gameplay config (S2-07)
+        try:
+            gameplay_config = get_gameplay_config()
+            config_dict = gameplay_config.get_all()
+        except RuntimeError:
+            # Config not initialized - use empty dict (testing scenario)
+            config_dict = {}
+
         # Execute each subsystem with its own context
         for subsystem in subsystems:
             # Create subsystem-specific context with shared event buffer
@@ -149,7 +158,7 @@ class TickExecutor:
                 db=db,
                 rng=base_rng,
                 subsystem_name=subsystem.name,
-                config={},  # TODO: Load from config file/database
+                config=config_dict,
                 events=tick_events  # Pass shared buffer
             )
 
