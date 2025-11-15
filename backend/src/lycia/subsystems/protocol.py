@@ -77,6 +77,60 @@ class TickContext(Protocol):
         """
         ...
 
+    # RNG helper methods for convenience
+    def random_int(self, min_val: int, max_val: int) -> int:
+        """
+        Generate a random integer in the range [min_val, max_val] (inclusive).
+
+        Args:
+            min_val: Minimum value (inclusive)
+            max_val: Maximum value (inclusive)
+
+        Returns:
+            Random integer between min_val and max_val
+        """
+        ...
+
+    def random_float(self, min_val: float = 0.0, max_val: float = 1.0) -> float:
+        """
+        Generate a random float in the range [min_val, max_val).
+
+        Args:
+            min_val: Minimum value (inclusive)
+            max_val: Maximum value (exclusive)
+
+        Returns:
+            Random float between min_val and max_val
+        """
+        ...
+
+    def random_choice(self, choices: list[Any]) -> Any:
+        """
+        Choose a random element from a non-empty sequence.
+
+        Args:
+            choices: Non-empty list of choices
+
+        Returns:
+            Random element from choices
+
+        Raises:
+            IndexError: If choices is empty
+        """
+        ...
+
+    def random_bool(self, probability: float = 0.5) -> bool:
+        """
+        Generate a random boolean with specified probability of True.
+
+        Args:
+            probability: Probability of returning True (0.0 to 1.0)
+
+        Returns:
+            True with given probability, False otherwise
+        """
+        ...
+
 
 @runtime_checkable
 class Subsystem(Protocol):

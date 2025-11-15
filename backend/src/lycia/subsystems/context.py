@@ -3,6 +3,7 @@ Tick Context Implementation
 
 Concrete implementation of TickContext provided to subsystems.
 """
+import hashlib
 from typing import Any
 from random import Random
 from sqlalchemy.orm import Session
@@ -43,8 +44,9 @@ class TickContextImpl:
         # Use shared event buffer if provided, otherwise create new list
         self._events: list[dict[str, Any]] = events if events is not None else []
 
-        # Create subsystem-specific RNG
-        self._rng = Random(f"{rng.getstate()}_{subsystem_name}")
+        # Create subsystem-specific RNG using deterministic seeding
+        # Combine tick number and subsystem name for isolation
+        self._rng = self._create_subsystem_rng(tick, subsystem_name, rng)
 
     @property
     def tick(self) -> int:
@@ -128,3 +130,103 @@ class TickContextImpl:
     def clear_events(self) -> None:
         """Clear all emitted events."""
         self._events.clear()
+
+    @staticmethod
+    def _create_subsystem_rng(tick: int, subsystem_name: str, base_rng: Random) -> Random:
+        """
+        Create a deterministic RNG for a specific subsystem.
+
+        The RNG is seeded using a combination of:
+        - Current tick number
+        - Subsystem name
+        - Base RNG state (to ensure global tick seed influences all subsystems)
+
+        This ensures:
+        1. Same tick + same subsystem + same global seed → same RNG sequence
+        2. Different subsystems get different RNG sequences (even in same tick)
+        3. Different ticks get different RNG sequences (even in same subsystem)
+
+        Args:
+            tick: Current tick number
+            subsystem_name: Name of the subsystem
+            base_rng: Base RNG seeded with tick seed
+
+        Returns:
+            Random instance with subsystem-specific seed
+        """
+        # Create deterministic seed from tick, subsystem name, and base RNG state
+        # Use first element of base_rng state tuple (the main seed value)
+        base_state = base_rng.getstate()
+        base_seed_value = base_state[1][0] if len(base_state) > 1 else 0
+
+        # Combine tick, subsystem name, and base seed
+        seed_string = f"tick_{tick}:subsystem_{subsystem_name}:base_{base_seed_value}"
+
+        # Generate numeric seed from string using SHA256
+        seed_hash = hashlib.sha256(seed_string.encode()).hexdigest()
+        numeric_seed = int(seed_hash, 16) % (2**32)
+
+        # Create and return new Random instance
+        subsystem_rng = Random()
+        subsystem_rng.seed(numeric_seed)
+        return subsystem_rng
+
+    # Helper methods for common RNG operations
+    def random_int(self, min_val: int, max_val: int) -> int:
+        """
+        Generate a random integer in the range [min_val, max_val] (inclusive).
+
+        This is a convenience wrapper around ctx.rng.randint().
+
+        Args:
+            min_val: Minimum value (inclusive)
+            max_val: Maximum value (inclusive)
+
+        Returns:
+            Random integer between min_val and max_val
+        """
+        return self._rng.randint(min_val, max_val)
+
+    def random_float(self, min_val: float = 0.0, max_val: float = 1.0) -> float:
+        """
+        Generate a random float in the range [min_val, max_val).
+
+        This is a convenience wrapper around ctx.rng.uniform().
+
+        Args:
+            min_val: Minimum value (inclusive)
+            max_val: Maximum value (exclusive)
+
+        Returns:
+            Random float between min_val and max_val
+        """
+        return self._rng.uniform(min_val, max_val)
+
+    def random_choice(self, choices: list[Any]) -> Any:
+        """
+        Choose a random element from a non-empty sequence.
+
+        This is a convenience wrapper around ctx.rng.choice().
+
+        Args:
+            choices: Non-empty list of choices
+
+        Returns:
+            Random element from choices
+
+        Raises:
+            IndexError: If choices is empty
+        """
+        return self._rng.choice(choices)
+
+    def random_bool(self, probability: float = 0.5) -> bool:
+        """
+        Generate a random boolean with specified probability of True.
+
+        Args:
+            probability: Probability of returning True (0.0 to 1.0)
+
+        Returns:
+            True with given probability, False otherwise
+        """
+        return self._rng.random() < probability
