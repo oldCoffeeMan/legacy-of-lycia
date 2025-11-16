@@ -1,9 +1,9 @@
 # Prototype Development Plan
 ---
 title: Legacy of Lycia – Prototype Development Plan
-version: 1.2
+version: 1.3
 status: Living Document
-updated: 2025-11-15
+updated: 2025-11-16
 license: CC BY 4.0
 ---
 
@@ -173,62 +173,98 @@ Development follows seven 2-week sprints in VS Code with Claude Code as AI pair-
 
 ---
 
-## Sprint 3–7 Plan (Updated Based on Sprint 2 Architecture)
+## Sprint 3 – Playable MVP (Economy + Politics + UI)
 
-### Sprint 3: Economy & Political Subsystems
-**Goal:** Implement core gameplay simulation systems
+### Goal
+Deliver the first fully playable vertical slice of the AI‑driven Lycia simulation, integrating the revised phase model and core subsystems with a minimal user interface.
 
-- Implement economy subsystem (production, trade, consumption, prosperity decay)
-- Implement politics subsystem (unrest tracking, rebellions, diplomatic events)
-- Add weather/disaster subsystem (random events affecting cities)
-- Create gameplay action handlers:
-  - Prosperity boost (economic investment)
-  - Trade route establishment
-  - Political edicts
-  - City development
-- Configuration tuning for game balance
-- Comprehensive testing of subsystem interactions
+### Key Deliverables
+- Phase model refactor (INTENTS → ENVIRONMENT → ECONOMY → POLITICS → SOCIAL → CLEANUP)
+- Environment v1 (drought/stress)
+- Economy v1 (agriculture + trade)
+- Politics v1 (unrest + governance)
+- Geography integration & seeding
+- Player actions (invest, adjust taxes, send caravan)
+- Minimal AI intents (allow‑listed)
+- Tick health & observability extensions
+- MVP UI (map, city panel, actions, event log)
+- Design docs (offline protection, catch‑up mode notes)
+- Sprint 3 test plan
 
-### Sprint 4: AI Game Master (AIND Integration)
-**Goal:** Add AI narration and dynamic content generation
+---
 
-- RAG system for historical context (ancient Lycia knowledge base)
-- Event narration with LLM integration (GPT-4/Claude)
-- AI-driven NPC decision making
-- Dynamic quest/event generation based on game state
-- Historian character for educational Q&A
-- Prompt engineering for consistent narrative tone
+## Sprint 4 – AIND Integration & Narrative Layer (Game Master v1)
 
-### Sprint 5: Multiplayer & Real-Time Updates
-**Goal:** Enable multi-player shared world experience
+### Goal
+Introduce AI‑driven historical reasoning, narration, and assistant‑style explanations to give meaning to world changes.
 
-- WebSocket support for real-time updates (alternative to polling)
-- Session management for multiple concurrent players
-- Shared world state with conflict resolution
-- Player-to-player interactions
-- Council voting system for collective decisions
-- Faction/alliance mechanics
+### Key Deliverables
+- AIND <-> simulation bridge (recap summarization, narrative generation)
+- Narration UI panel (AI commentary on simulation events)
+- Ask‑the‑Narrator interaction (player → AIND → state‑aware answers)
+- Historian Mode backend (historical Q/A using world bible)
+- Catch‑up mode design finalized
+- Extended logging & debugging tools
+- Sprint 4 test plan
 
-### Sprint 6: Dynamic Content & Advanced Features
-**Goal:** Add depth and replayability
+---
 
-- Dynamic event system (AI-generated scenarios)
-- Quest mechanics with branching outcomes
-- Achievement system
-- Historical knowledge points
-- Discovery Mode for exploration
-- Advanced visualizations (charts, timelines)
+## Sprint 5 – Multiplayer Foundations & Council System v1
 
-### Sprint 7: Educational Mode & Polish
-**Goal:** Final polish and educational features
+### Goal
+Support multiple players in the same world and introduce political decision‑making through the Lycian Council.
 
-- Historian Q&A interface with RAG
-- Tutorial system for new players
-- Discovery Mode enhancements
-- Performance optimization
-- UI/UX polish
-- Documentation finalization
-- Deployment preparation
+### Key Deliverables
+- Multi‑player session model (roles, identity, state)
+- Council proposal + voting system
+- WebSocket or optimized polling for multi‑client sync
+- Simple factions integrated into politics subsystem
+- Expanded UI for council participation
+- Performance testing baseline
+- Sprint 5 test plan
+
+---
+
+## Sprint 6 – Dynamic Event Engine & Advanced AIND Actions
+
+### Goal
+Add replayability and strategic depth via AI‑generated incidents, quests, and dynamic world events.
+
+### Key Deliverables
+- Dynamic event generator (AIND‑driven templates)
+- Multi‑step incidents / quests with internal state machines
+- Extended AI intents (negotiation, smuggling, rebuilding, etc.)
+- Player–AI negotiation flow (choose options → mapped to actions)
+- World tension models (food crisis, trade boom, political fractures)
+- Load testing on dynamic content
+- Sprint 6 test plan
+
+---
+
+## Sprint 7 – Educational Mode, Discovery Mode & UX Polish
+
+### Goal
+Finalize the prototype into a polished educational–historical strategy experience.
+
+### Deliverables
+- Historian Mode full UI (ask historical questions about Lycia)
+- Discovery Mode (explore cities, regions, temples with AI‑generated lore)
+- Tutorial & onboarding sequence (AI‑guided)
+- Full UX refinement (layout, responsiveness, clarity)
+- Simulation balancing & optimization
+- Release‑ready documentation (README, onboarding, demo script)
+- Sprint 7 test plan
+
+---
+
+## Long‑Term Outlook (Post‑Prototype)
+
+- Expanded economy (multiple goods, caravansaries, seasonal cycles)
+- Diplomacy with external powers (Persians, neighboring regions)
+- Naval system & piracy mechanics
+- Advanced religious/social subsystems
+- Procedural characters, families, and lineages
+- Persistent meta‑progression across campaigns
 
 ---
 
